@@ -84,7 +84,7 @@ const Login = () => {
             className="label-xs text-[var(--color-accent)]"
             style={{ letterSpacing: '0.3em' }}
           >
-            ModaMariaJose · CMS
+            Stylo019 · CMS
           </span>
           <h1
             className="font-serif text-[var(--color-ink)]"

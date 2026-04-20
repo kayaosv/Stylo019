@@ -7,23 +7,16 @@ import {
 } from '@/services/productos'
 import { ImageUploader } from '@/components/admin/ImageUploader'
 import { COLORES_DISPONIBLES, getColorMeta } from '@/lib/colores'
-
-const CATEGORIAS = [
-  'vestidos',
-  'blazers',
-  'abrigos',
-  'faldas',
-  'pantalones',
-  'blusas',
-  'curvy',
-]
-
-const TALLAS = ['XS', 'S', 'M', 'L', 'XL']
+import { TALLA_SETS, TIPO_TALLA_OPTIONS } from '@/lib/tallas'
+import { fetchCategorias } from '@/services/categorias'
 
 const EMPTY_CUSTOM_SLOTS = () => [
   { id: 'custom-1', label: '', hex: '#ffffff', activo: false, imagenes: [] },
   { id: 'custom-2', label: '', hex: '#ffffff', activo: false, imagenes: [] },
 ]
+
+const emptyTallas = (tipo) => Object.fromEntries(TALLA_SETS[tipo].map((t) => [t, 0]))
+const emptyPreciosTalla = (tipo) => Object.fromEntries(TALLA_SETS[tipo].map((t) => [t, '']))
 
 const emptyForm = () => ({
   nombre: '',
@@ -31,13 +24,14 @@ const emptyForm = () => ({
   precio: '',
   precio_oferta: '',
   categoria: 'vestidos',
-  tallas: { XS: 0, S: 0, M: 0, L: 0, XL: 0 },
-  precios_talla: {},
+  tipo_talla: 'ropa',
+  tallas: emptyTallas('ropa'),
+  precios_talla: emptyPreciosTalla('ropa'),
   usarPreciosTalla: false,
   imagenes: [],
   usarColores: false,
-  colores: {},        // fixed: { blanco: { activo: true, imagenes: [...] }, ... }
-  coloresCustom: EMPTY_CUSTOM_SLOTS(), // 2 custom slots per product
+  colores: {},
+  coloresCustom: EMPTY_CUSTOM_SLOTS(),
   destacado: false,
   mas_vendido: false,
   activo: true,
@@ -55,10 +49,15 @@ const ProductoForm = () => {
   const isEdit = Boolean(id)
 
   const [form, setForm] = useState(emptyForm)
+  const [categorias, setCategorias] = useState([])
   const [loading, setLoading] = useState(isEdit)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
+
+  useEffect(() => {
+    fetchCategorias().then(({ data }) => setCategorias(data))
+  }, [])
 
   // Load existing product when editing
   useEffect(() => {
@@ -74,6 +73,8 @@ const ProductoForm = () => {
         setLoading(false)
         return
       }
+      const tipoTalla = data.tipo_talla || 'ropa'
+      const tallasSet = TALLA_SETS[tipoTalla] ?? TALLA_SETS.ropa
       const pt = data.precios_talla ?? {}
       const hasPT = Object.keys(pt).length > 0
       const rawColores = Array.isArray(data.colores) ? data.colores : []
@@ -111,15 +112,12 @@ const ProductoForm = () => {
         precio: String(data.precio ?? ''),
         precio_oferta: data.precio_oferta ? String(data.precio_oferta) : '',
         categoria: data.categoria ?? 'vestidos',
-        tallas: {
-          XS: Number(data.tallas?.XS) || 0,
-          S: Number(data.tallas?.S) || 0,
-          M: Number(data.tallas?.M) || 0,
-          L: Number(data.tallas?.L) || 0,
-          XL: Number(data.tallas?.XL) || 0,
-        },
+        tipo_talla: tipoTalla,
+        tallas: Object.fromEntries(
+          tallasSet.map((t) => [t, Number(data.tallas?.[t]) || 0])
+        ),
         precios_talla: Object.fromEntries(
-          TALLAS.map((t) => [t, pt[t] != null ? String(pt[t]) : ''])
+          tallasSet.map((t) => [t, pt[t] != null ? String(pt[t]) : ''])
         ),
         usarPreciosTalla: hasPT,
         imagenes: Array.isArray(data.imagenes) ? data.imagenes : [],
@@ -147,6 +145,15 @@ const ProductoForm = () => {
       delete next[key]
       return next
     })
+  }
+
+  const changeTipoTalla = (tipo) => {
+    setForm((prev) => ({
+      ...prev,
+      tipo_talla: tipo,
+      tallas: emptyTallas(tipo),
+      precios_talla: emptyPreciosTalla(tipo),
+    }))
   }
 
   const updateTalla = (talla, value) => {
@@ -212,7 +219,7 @@ const ProductoForm = () => {
     if (!form.nombre.trim()) errors.nombre = 'Requerido'
     const precio = Number(form.precio)
     if (!Number.isFinite(precio) || precio <= 0) errors.precio = 'Precio inválido'
-    if (!CATEGORIAS.includes(form.categoria)) errors.categoria = 'Categoría inválida'
+    if (!form.categoria) errors.categoria = 'Requerido'
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -228,9 +235,10 @@ const ProductoForm = () => {
     const precioOferta = form.precio_oferta ? Number(form.precio_oferta) : null
 
     // Build precios_talla: only include sizes with a valid number, null if toggle is off or empty
+    const tallasSet = TALLA_SETS[form.tipo_talla] ?? TALLA_SETS.ropa
     let preciosTalla = null
     if (form.usarPreciosTalla) {
-      const entries = TALLAS
+      const entries = tallasSet
         .filter((t) => form.precios_talla[t] !== '' && form.precios_talla[t] != null)
         .map((t) => [t, Number(form.precios_talla[t])])
         .filter(([, v]) => Number.isFinite(v) && v > 0)
@@ -267,6 +275,7 @@ const ProductoForm = () => {
       precio: Number(form.precio),
       precio_oferta: precioOferta,
       categoria: form.categoria,
+      tipo_talla: form.tipo_talla,
       tallas: form.tallas,
       precios_talla: preciosTalla,
       imagenes: form.imagenes,
@@ -442,12 +451,30 @@ const ProductoForm = () => {
                     border: '1px solid var(--color-surface)',
                     padding: '0.85rem 1rem',
                     fontSize: '0.95rem',
-                    textTransform: 'capitalize',
                   }}
                 >
-                  {CATEGORIAS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  {categorias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Tipo de talla">
+                <select
+                  value={form.tipo_talla}
+                  onChange={(e) => changeTipoTalla(e.target.value)}
+                  className="w-full bg-[var(--color-paper)] font-sans text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                  style={{
+                    border: '1px solid var(--color-surface)',
+                    padding: '0.85rem 1rem',
+                    fontSize: '0.95rem',
+                  }}
+                >
+                  {TIPO_TALLA_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
                     </option>
                   ))}
                 </select>
@@ -468,13 +495,13 @@ const ProductoForm = () => {
               gap: '1rem',
             }}
           >
-            {TALLAS.map((talla) => (
+            {(TALLA_SETS[form.tipo_talla] ?? TALLA_SETS.ropa).map((talla) => (
               <Field key={talla} label={talla}>
                 <input
                   type="number"
                   min="0"
                   step="1"
-                  value={form.tallas[talla]}
+                  value={form.tallas[talla] ?? 0}
                   onChange={(e) => updateTalla(talla, e.target.value)}
                   className="w-full bg-[var(--color-paper)] font-serif text-[var(--color-ink)] text-center outline-none focus:border-[var(--color-accent)]"
                   style={{
@@ -510,7 +537,7 @@ const ProductoForm = () => {
                   gap: '1rem',
                 }}
               >
-                {TALLAS.map((talla) => (
+                {(TALLA_SETS[form.tipo_talla] ?? TALLA_SETS.ropa).map((talla) => (
                   <Field key={talla} label={`${talla} (€)`}>
                     <input
                       type="number"

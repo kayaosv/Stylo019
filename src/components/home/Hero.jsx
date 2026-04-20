@@ -204,12 +204,11 @@ export const Hero = () => {
             ref={descRef}
             className="font-serif font-light text-[var(--color-muted)] max-w-sm"
             style={{
-              fontSize: 'clamp(1rem, 1.2vw, 1.2rem)',
+              fontSize: 'clamp(1.1rem, 1.5vw, 1.4rem)',
               lineHeight: 1.45,
             }}
           >
-            Moda exclusiva para mujer en el Centro Historico de Sevilla.
-            Cada pieza, elegida con cuidado. Para Ti.
+            Somos una tienda online del Barrio Parque Alcosa.
           </p>
 
           {/* CTA with animated underline + magnetic hover */}

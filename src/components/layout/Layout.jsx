@@ -7,6 +7,7 @@ import { TikTokButton } from '@/components/ui/TikTokButton'
 import { CartDrawer } from '@/components/carrito/CartDrawer'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { CustomCursor } from '@/components/ui/CustomCursor'
+import { CookieBanner } from '@/components/ui/CookieBanner'
 
 const Layout = () => (
   <>
@@ -21,6 +22,7 @@ const Layout = () => (
     <TikTokButton />
     <CartDrawer />
     <CustomCursor />
+    <CookieBanner />
   </>
 )
 

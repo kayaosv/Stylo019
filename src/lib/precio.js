@@ -1,6 +1,4 @@
 /**
- * Centralized price helpers for ModaMariaJose.
- *
  * Price hierarchy:
  *   precios_talla[talla]  →  precio  (base)
  *   precio_oferta applies as a discount on top when it's lower.

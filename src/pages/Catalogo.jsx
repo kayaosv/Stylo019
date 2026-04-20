@@ -6,6 +6,7 @@ import { Filtros } from '@/components/catalogo/Filtros'
 import { FiltrosDrawer } from '@/components/catalogo/FiltrosDrawer'
 import { Buscador } from '@/components/catalogo/Buscador'
 import { Ordenamiento } from '@/components/catalogo/Ordenamiento'
+import { Newsletter } from '@/components/home/Newsletter'
 
 const POR_PAGINA = 12
 
@@ -192,6 +193,8 @@ const Catalogo = () => {
         onLimpiar={handleLimpiar}
         totalResultados={total}
       />
+
+      <Newsletter />
     </div>
   )
 }

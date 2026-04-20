@@ -1,16 +1,10 @@
 import { useRef } from 'react'
 import gsap from 'gsap'
+import { TALLA_SETS } from '@/lib/tallas'
 
-// Same order used in ProductCard for consistency across the project
-const TALLA_ORDER = ['XS', 'S', 'M', 'L', 'XL']
-
-// Size selector with per-talla stock validation.
-// Disabled state (stock = 0): strikethrough + stone color + not-allowed cursor.
-// Selected state: noir background + creme text.
-// GSAP scale bump on selection for tactile feedback.
-export const SelectorTalla = ({ tallas = {}, seleccionada = null, onChange }) => {
-  // Array of refs — one per button — for targeted GSAP scale bumps
+export const SelectorTalla = ({ tallas = {}, seleccionada = null, tipoTalla = 'ropa', onChange }) => {
   const btnRefs = useRef([])
+  const orden = TALLA_SETS[tipoTalla] ?? TALLA_SETS.ropa
 
   const handleSelect = (talla, idx) => {
     const stock = tallas?.[talla] ?? 0
@@ -18,7 +12,6 @@ export const SelectorTalla = ({ tallas = {}, seleccionada = null, onChange }) =>
 
     onChange?.(talla)
 
-    // Scale bump feedback on the selected button
     const btn = btnRefs.current[idx]
     if (btn) {
       gsap.fromTo(
@@ -31,7 +24,7 @@ export const SelectorTalla = ({ tallas = {}, seleccionada = null, onChange }) =>
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      {TALLA_ORDER.map((talla, idx) => {
+      {orden.map((talla, idx) => {
         const stock = tallas?.[talla] ?? 0
         const disponible = stock > 0
         const activa = seleccionada === talla

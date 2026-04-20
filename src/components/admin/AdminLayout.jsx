@@ -6,6 +6,7 @@ const navItems = [
   { to: '/admin', label: 'Productos', end: true },
   { to: '/admin/productos/nuevo', label: 'Nuevo producto', end: false },
   { to: '/admin/hero', label: 'Hero', end: true },
+  { to: '/admin/categorias', label: 'Categorías', end: true },
 ]
 
 export const AdminLayout = () => {
@@ -39,7 +40,7 @@ export const AdminLayout = () => {
             className="label-xs text-[var(--color-accent)] block"
             style={{ letterSpacing: '0.3em' }}
           >
-            ModaMariaJose
+            Stylo019
           </span>
           <h2
             className="font-serif text-[var(--color-ink)]"
@@ -197,7 +198,7 @@ export const AdminLayout = () => {
             className="label-xs text-[var(--color-accent)] block"
             style={{ letterSpacing: '0.3em' }}
           >
-            ModaMariaJose
+            Stylo019
           </span>
           <h2
             className="font-serif text-[var(--color-ink)]"

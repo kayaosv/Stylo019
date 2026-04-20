@@ -41,8 +41,8 @@ export const Newsletter = () => {
         ease: 'expo.out',
         scrollTrigger: {
           trigger: rootRef.current,
-          start: 'top 85%',
-          toggleActions: 'play none none reverse',
+          start: 'top 78%',
+          once: true,
         },
       })
 
@@ -55,8 +55,8 @@ export const Newsletter = () => {
         stagger: 0.1,
         scrollTrigger: {
           trigger: rootRef.current,
-          start: 'top 80%',
-          toggleActions: 'play none none reverse',
+          start: 'top 75%',
+          once: true,
         },
       })
 
@@ -68,7 +68,8 @@ export const Newsletter = () => {
         ease: 'expo.inOut',
         scrollTrigger: {
           trigger: lineRef.current,
-          start: 'top 95%',
+          start: 'top 92%',
+          once: true,
         },
       })
     },

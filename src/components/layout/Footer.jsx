@@ -31,7 +31,7 @@ export const Footer = () => {
         scrollTrigger: {
           trigger: heroRef.current,
           start: 'top 85%',
-          toggleActions: 'play none none reverse',
+          once: true,
         },
       })
 
@@ -44,6 +44,7 @@ export const Footer = () => {
         scrollTrigger: {
           trigger: lineRef.current,
           start: 'top 90%',
+          once: true,
         },
       })
 
@@ -56,6 +57,7 @@ export const Footer = () => {
         scrollTrigger: {
           trigger: yearRef.current,
           start: 'top 90%',
+          once: true,
         },
       })
 
@@ -341,7 +343,7 @@ export const Footer = () => {
 
           <div className="flex flex-col gap-1 pb-6 md:pb-12 text-right">
             <span className="label-xs text-[var(--color-muted-soft)]">
-              © ModaMariaJose
+              © Stylo019
             </span>
             <span className="label-xs text-[var(--color-muted-soft)]">
               All rights reserved
@@ -355,27 +357,27 @@ export const Footer = () => {
         {/* Legal micro-line — bottom absolute */}
         <div className="flex justify-between items-center pt-6 mt-6 border-t border-[var(--color-muted)]/30 flex-wrap gap-2">
           <span className="label-xs text-[var(--color-muted-soft)]">
-            CIF: B12345678
+            CIF: 28753199W
           </span>
           <div className="flex gap-6">
-            <a
-              href="#"
+            <Link
+              to="/privacidad"
               className="label-xs text-[var(--color-muted-soft)] hover:text-[var(--color-accent)] transition-colors"
             >
               Privacidad
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/cookies"
               className="label-xs text-[var(--color-muted-soft)] hover:text-[var(--color-accent)] transition-colors"
             >
               Cookies
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/terminos"
               className="label-xs text-[var(--color-muted-soft)] hover:text-[var(--color-accent)] transition-colors"
             >
               Terminos
-            </a>
+            </Link>
           </div>
           <span className="label-xs text-[var(--color-muted-soft)]">
             v1.0 — WhatsApp Order

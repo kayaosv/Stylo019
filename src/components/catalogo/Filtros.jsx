@@ -1,10 +1,10 @@
 import { useRef, useState, useEffect } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
+import { fetchCategorias } from '@/services/categorias'
 
 gsap.registerPlugin(useGSAP)
 
-const CATEGORIAS = ['Vestidos', 'Blazers', 'Abrigos', 'Faldas', 'Pantalones', 'Blusas', 'Curvy']
 const TALLAS = ['XS', 'S', 'M', 'L', 'XL']
 
 // Editorial sticky sidebar — no card, no shadow, integrated into the cream background.
@@ -13,9 +13,15 @@ export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0 }) =
   const tituloRef = useRef(null)
   const lineRef = useRef(null)
 
+  const [categorias, setCategorias] = useState([])
+
   // Local state for price inputs (only commit on blur)
   const [precioMinLocal, setPrecioMinLocal] = useState(filtros?.precioMin ?? '')
   const [precioMaxLocal, setPrecioMaxLocal] = useState(filtros?.precioMax ?? '')
+
+  useEffect(() => {
+    fetchCategorias().then(({ data }) => setCategorias(data))
+  }, [])
 
   // Sync if parent resets filters
   useEffect(() => {
@@ -145,15 +151,15 @@ export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0 }) =
           Coleccion
         </span>
         <ul className="flex flex-col gap-2.5">
-          {CATEGORIAS.map((cat) => {
-            const activa = filtros?.categoria === cat
+          {categorias.map((cat) => {
+            const activa = filtros?.categoria === cat.nombre
             return (
-              <li key={cat}>
+              <li key={cat.id}>
                 <button
                   type="button"
                   data-cat-btn
                   data-active={activa ? 'true' : 'false'}
-                  onClick={() => handleCategoria(cat)}
+                  onClick={() => handleCategoria(cat.nombre)}
                   className="relative inline-block text-left font-serif font-light leading-tight"
                   style={{
                     fontSize: '1rem',
@@ -164,8 +170,7 @@ export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0 }) =
                     textDecorationThickness: '1px',
                   }}
                 >
-                  {cat}
-                  {/* Hover underline — GSAP driven, only when inactive */}
+                  {cat.nombre}
                   {!activa && (
                     <span
                       data-cat-underline

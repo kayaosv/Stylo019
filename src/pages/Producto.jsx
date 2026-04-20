@@ -379,6 +379,7 @@ const Producto = () => {
             <SelectorTalla
               tallas={producto.tallas ?? {}}
               seleccionada={tallaSeleccionada}
+              tipoTalla={producto.tipo_talla ?? 'ropa'}
               onChange={setTallaSeleccionada}
             />
             {tallaSeleccionada && (producto.tallas?.[tallaSeleccionada] ?? 0) <= 3 && (

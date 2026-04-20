@@ -11,6 +11,9 @@ const Contacto = lazy(() => import('@/pages/Contacto'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const CheckoutSuccess = lazy(() => import('@/pages/CheckoutSuccess'))
 const CheckoutCancel = lazy(() => import('@/pages/CheckoutCancel'))
+const Privacidad = lazy(() => import('@/pages/Privacidad'))
+const Cookies = lazy(() => import('@/pages/Cookies'))
+const Terminos = lazy(() => import('@/pages/Terminos'))
 
 // Admin bundle kept together — rarely visited, still off the critical path.
 const Login = lazy(() => import('@/pages/admin/Login'))
@@ -20,6 +23,7 @@ const AdminLayout = lazy(() =>
 const ProductosList = lazy(() => import('@/pages/admin/ProductosList'))
 const ProductoForm = lazy(() => import('@/pages/admin/ProductoForm'))
 const HeroSettings = lazy(() => import('@/pages/admin/HeroSettings'))
+const Categorias = lazy(() => import('@/pages/admin/Categorias'))
 
 const RouteFallback = () => (
   <div
@@ -46,6 +50,9 @@ const App = () => (
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/checkout/cancel" element={<CheckoutCancel />} />
+          <Route path="/privacidad" element={<Privacidad />} />
+          <Route path="/cookies" element={<Cookies />} />
+          <Route path="/terminos" element={<Terminos />} />
         </Route>
 
         <Route path="/admin/login" element={<Login />} />
@@ -61,6 +68,7 @@ const App = () => (
           <Route path="productos/nuevo" element={<ProductoForm />} />
           <Route path="productos/:id" element={<ProductoForm />} />
           <Route path="hero" element={<HeroSettings />} />
+          <Route path="categorias" element={<Categorias />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
