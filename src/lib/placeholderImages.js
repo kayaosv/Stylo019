@@ -63,11 +63,14 @@ export const HERO_PLACEHOLDER =
   'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=1400&auto=format&fit=crop&q=85'
 
 // Inject placeholder imagenes on products that have an empty/missing array.
-// Does not overwrite real data — when the admin uploads real photos to
-// Supabase Storage, `producto.imagenes` will be non-empty and this is a no-op.
+// Falls back to the first color variant image before using Unsplash placeholders.
 export const withPlaceholderImages = (producto) => {
   if (!producto) return producto
   const hasReal = Array.isArray(producto.imagenes) && producto.imagenes.length > 0
   if (hasReal) return producto
+  const firstColorImage = Array.isArray(producto.colores)
+    ? producto.colores[0]?.imagenes?.[0]
+    : null
+  if (firstColorImage) return { ...producto, imagenes: [firstColorImage] }
   return { ...producto, imagenes: getPlaceholderImages(producto) }
 }

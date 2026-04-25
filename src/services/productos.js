@@ -192,16 +192,24 @@ export const createProducto = async (values) => {
 export const deleteProducto = async (id) => {
   const { data: row } = await supabase
     .from('productos')
-    .select('imagenes')
+    .select('imagenes, colores')
     .eq('id', id)
     .single()
 
-  const paths = Array.isArray(row?.imagenes)
+  const mainPaths = Array.isArray(row?.imagenes)
     ? row.imagenes.map(extractPathFromPublicUrl).filter(Boolean)
     : []
 
-  if (paths.length > 0) {
-    await supabase.storage.from('products').remove(paths)
+  const colorPaths = Array.isArray(row?.colores)
+    ? row.colores.flatMap((c) =>
+        Array.isArray(c.imagenes) ? c.imagenes.map(extractPathFromPublicUrl).filter(Boolean) : []
+      )
+    : []
+
+  const allPaths = [...new Set([...mainPaths, ...colorPaths])]
+
+  if (allPaths.length > 0) {
+    await supabase.storage.from('products').remove(allPaths)
   }
 
   const { error } = await supabase.from('productos').delete().eq('id', id)
