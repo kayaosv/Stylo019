@@ -9,21 +9,23 @@ import { PageTransition } from '@/components/layout/PageTransition'
 import { CustomCursor } from '@/components/ui/CustomCursor'
 import { CookieBanner } from '@/components/ui/CookieBanner'
 
-const Layout = () => (
-  <>
-    <Header />
-    <main>
-      <PageTransition />
-    </main>
-    <Footer />
-    <MobileMenu />
-    <WhatsAppButton />
-    <InstagramButton />
-    <TikTokButton />
-    <CartDrawer />
-    <CustomCursor />
-    <CookieBanner />
-  </>
-)
+const Layout = () => {
+  return (
+    <>
+      <Header />
+      <main>
+        <PageTransition />
+      </main>
+      <Footer />
+      <MobileMenu />
+      <WhatsAppButton />
+      <InstagramButton />
+      <TikTokButton />
+      <CartDrawer />
+      <CustomCursor />
+      <CookieBanner />
+    </>
+  )
+}
 
 export default Layout

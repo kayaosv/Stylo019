@@ -1,16 +1,17 @@
-import { useMemo, useCallback, useState } from 'react'
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useProductos } from '@/hooks/useProductos'
+import { useProductosInfinite } from '@/hooks/useProductosInfinite'
 import { ProductGrid } from '@/components/catalogo/ProductGrid'
 import { Filtros } from '@/components/catalogo/Filtros'
 import { FiltrosDrawer } from '@/components/catalogo/FiltrosDrawer'
+import { FiltrosActivos } from '@/components/catalogo/FiltrosActivos'
 import { Buscador } from '@/components/catalogo/Buscador'
 import { Ordenamiento } from '@/components/catalogo/Ordenamiento'
 import { Newsletter } from '@/components/home/Newsletter'
 
 const POR_PAGINA = 12
 
-// Parse URL search params into filter object
+// Parse URL search params into filter object (no pagina — managed by the hook)
 const parseFiltros = (params) => ({
   busqueda: params.get('q') || null,
   categoria: params.get('cat') || null,
@@ -18,36 +19,56 @@ const parseFiltros = (params) => ({
   precioMin: params.get('pMin') ? Number(params.get('pMin')) : null,
   precioMax: params.get('pMax') ? Number(params.get('pMax')) : null,
   orden: params.get('orden') || 'novedad',
-  pagina: params.get('p') ? Number(params.get('p')) : 1,
-  porPagina: POR_PAGINA,
 })
 
 // Serialize filter object back to URL params (omit null/default values)
 const serializeFiltros = (filtros) => {
   const p = {}
-  if (filtros.busqueda)       p.q     = filtros.busqueda
-  if (filtros.categoria)      p.cat   = filtros.categoria
+  if (filtros.busqueda)        p.q     = filtros.busqueda
+  if (filtros.categoria)       p.cat   = filtros.categoria
   if (filtros.tallaDisponible) p.talla = filtros.tallaDisponible
   if (filtros.precioMin != null) p.pMin = filtros.precioMin
   if (filtros.precioMax != null) p.pMax = filtros.precioMax
   if (filtros.orden && filtros.orden !== 'novedad') p.orden = filtros.orden
-  if (filtros.pagina && filtros.pagina > 1) p.p = filtros.pagina
   return p
 }
 
 const Catalogo = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const [filtrosOpen, setFiltrosOpen] = useState(false)
+  const sentinelRef = useRef(null)
 
-  // Derive filters from URL — stable reference when URL hasn't changed
   const filtros = useMemo(() => parseFiltros(searchParams), [searchParams.toString()])
 
-  const { productos, loading, total } = useProductos(filtros)
+  const {
+    productos,
+    loading,
+    loadingMore,
+    hasMore,
+    total,
+    loadMore,
+  } = useProductosInfinite(filtros)
 
-  // Merge partial filter update into URL
+  // IntersectionObserver — triggers loadMore when sentinel enters viewport
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore()
+      },
+      { rootMargin: '200px' }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [loadMore])
+
+  // Merge partial filter update into URL (always resets to page 1 via hook)
   const handleFiltroChange = useCallback(
     (parcial) => {
-      const nuevo = { ...filtros, ...parcial, pagina: 1 }
+      const nuevo = { ...filtros, ...parcial }
       setSearchParams(serializeFiltros(nuevo), { replace: true })
     },
     [filtros, setSearchParams]
@@ -59,25 +80,35 @@ const Catalogo = () => {
     [setSearchParams]
   )
 
-  // Search: merge busqueda into filters
+  // Clear a single filter field
+  const handleQuitarFiltro = useCallback(
+    (campo) => handleFiltroChange({ [campo]: null }),
+    [handleFiltroChange]
+  )
+
   const handleBusqueda = useCallback(
     (q) => handleFiltroChange({ busqueda: q || null }),
     [handleFiltroChange]
   )
 
-  // Sort
   const handleOrden = useCallback(
     (orden) => handleFiltroChange({ orden }),
     [handleFiltroChange]
   )
 
-  // Build filtros prop for sidebar (only the filter fields, not orden/pagina)
   const filtrosSidebar = {
     categoria: filtros.categoria,
     tallaDisponible: filtros.tallaDisponible,
     precioMin: filtros.precioMin,
     precioMax: filtros.precioMax,
   }
+
+  const hayFiltrosActivos =
+    !!filtros.categoria ||
+    !!filtros.tallaDisponible ||
+    filtros.precioMin != null ||
+    filtros.precioMax != null ||
+    !!filtros.busqueda
 
   return (
     <div
@@ -89,7 +120,6 @@ const Catalogo = () => {
         className="relative px-6 md:px-12 pb-8 overflow-hidden flex items-end"
         style={{ minHeight: 'clamp(6rem, 16vw, 14rem)' }}
       >
-        {/* Giant background title */}
         <span
           className="absolute bottom-0 left-4 md:left-8 select-none pointer-events-none font-serif font-semibold leading-none"
           style={{
@@ -104,7 +134,6 @@ const Catalogo = () => {
           Catalogo
         </span>
 
-        {/* Foreground content */}
         <div className="relative z-10 flex flex-col gap-2 pb-4">
           <span className="label-xs text-[var(--color-accent-ink)]">
             Av. Ildefonso Marañón Lavín &mdash; Sevilla
@@ -127,7 +156,7 @@ const Catalogo = () => {
       <div className="px-6 md:px-12 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-12 xl:gap-20">
 
-          {/* Sidebar filters — hidden on mobile, shown as drawer later (M8) */}
+          {/* Sidebar filters */}
           <div className="hidden lg:block">
             <Filtros
               filtros={filtrosSidebar}
@@ -141,7 +170,6 @@ const Catalogo = () => {
           <div className="flex flex-col gap-8">
             {/* Sort row */}
             <div className="flex items-center justify-between gap-4">
-              {/* Mobile: filter trigger button */}
               <button
                 type="button"
                 onClick={() => setFiltrosOpen(true)}
@@ -168,18 +196,65 @@ const Catalogo = () => {
 
               <Ordenamiento valor={filtros.orden} onChange={handleOrden} />
 
-              {/* Mobile: results count */}
               <span className="lg:hidden label-xs text-[var(--color-muted)] italic">
                 {loading ? '...' : `( ${total} )`}
               </span>
             </div>
 
+            {/* Active filter chips — visible when any filter is on */}
+            {hayFiltrosActivos && (
+              <FiltrosActivos
+                filtros={filtros}
+                onQuitarFiltro={handleQuitarFiltro}
+                onLimpiar={handleLimpiar}
+              />
+            )}
+
             {/* Grid */}
             <ProductGrid
               productos={productos}
               loading={loading}
+              loadingMore={loadingMore}
               porPagina={POR_PAGINA}
             />
+
+            {/* Sentinel for IntersectionObserver — invisible trigger point */}
+            <div ref={sentinelRef} aria-hidden style={{ height: 1 }} />
+
+            {/* "Ver más" button — fallback explicit control */}
+            {!loading && hasMore && (
+              <div className="flex justify-center pt-4 pb-2">
+                <button
+                  type="button"
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="label-xs border border-[var(--color-ink)] px-8 py-3 transition-colors duration-300 disabled:opacity-40"
+                  style={{ color: 'var(--color-ink)', letterSpacing: '0.18em' }}
+                  onMouseEnter={(e) => {
+                    if (!loadingMore) {
+                      e.currentTarget.style.background = 'var(--color-ink)'
+                      e.currentTarget.style.color = 'var(--color-paper)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = 'var(--color-ink)'
+                  }}
+                >
+                  {loadingMore ? 'Cargando...' : 'Ver más'}
+                </button>
+              </div>
+            )}
+
+            {/* End of catalog message */}
+            {!loading && !hasMore && productos.length > 0 && (
+              <p
+                className="text-center label-xs text-[var(--color-muted)] italic py-4"
+                style={{ letterSpacing: '0.1em' }}
+              >
+                — Fin del catálogo —
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -24,7 +24,7 @@ const buildWhatsAppUrl = (nombre, talla, precio) => {
 const PageSkeleton = () => (
   <div
     className="px-6 md:px-12 py-12"
-    style={{ minHeight: '100vh', paddingTop: '8rem' }}
+    style={{ minHeight: '100vh', paddingTop: '10rem' }}
   >
     <div className="grid grid-cols-1 lg:grid-cols-[55%_45%] gap-12 lg:gap-16">
       {/* Gallery skeleton */}
@@ -199,14 +199,14 @@ const Producto = () => {
   return (
     <div
       style={{ minHeight: '100vh', background: 'var(--color-base)' }}
-      className="px-6 md:px-12 pt-28 md:pt-32 pb-24 lg:pb-32"
+      className="px-6 md:px-12 pt-36 md:pt-40 pb-24 lg:pb-32"
     >
       {/* Main 2-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[55%_45%] gap-12 lg:gap-16 mb-24 lg:mb-32">
 
         {/* LEFT — Gallery */}
         <GaleriaProducto
-          key={colorSeleccionado ?? 'base'}
+          key={`${producto.id}-${colorSeleccionado ?? 'base'}`}
           imagenes={imagenesGaleria}
           nombre={producto.nombre}
         />
@@ -225,12 +225,16 @@ const Producto = () => {
               className="label-xs hover:underline underline-offset-2 transition-colors"
               style={{ color: 'var(--color-muted)' }}
             >
-              ← Catálogo
+              Catálogo
             </Link>
             <span className="label-xs" style={{ color: 'var(--color-muted-soft)' }}>/</span>
-            <span className="label-xs capitalize" style={{ color: 'var(--color-muted)' }}>
+            <Link
+              to={`/catalogo?cat=${encodeURIComponent(producto.categoria)}`}
+              className="label-xs capitalize hover:underline underline-offset-2 transition-colors"
+              style={{ color: 'var(--color-muted)' }}
+            >
               {producto.categoria}
-            </span>
+            </Link>
             <span className="label-xs" style={{ color: 'var(--color-muted-soft)' }}>/</span>
             <span
               className="label-xs truncate"

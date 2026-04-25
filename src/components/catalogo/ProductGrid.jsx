@@ -9,20 +9,35 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 
 // Asymmetric product grid — first card breaks the rhythm as a large editorial piece.
 // Desktop: 3 columns with first item spanning 2x2. Mobile: regular 2-column grid.
-export const ProductGrid = ({ productos = [], loading = false, porPagina = 12 }) => {
+export const ProductGrid = ({
+  productos = [],
+  loading = false,
+  loadingMore = false,
+  porPagina = 12,
+}) => {
   const gridRef = useRef(null)
+  // Tracks how many cards have already been animated to avoid re-animating on loadMore
+  const animatedCountRef = useRef(0)
 
-  // Stagger reveal when products arrive (loading -> false)
+  // Stagger reveal — only for cards that haven't been animated yet
   useGSAP(
     () => {
-      if (loading) return
+      if (loading) {
+        animatedCountRef.current = 0
+        return
+      }
       if (!productos.length) return
 
-      const cards = gridRef.current?.querySelectorAll('[data-product-card]')
-      if (!cards || !cards.length) return
+      const allCards = gridRef.current?.querySelectorAll('[data-product-card]')
+      if (!allCards?.length) return
+
+      const newCards = [...allCards].slice(animatedCountRef.current)
+      if (!newCards.length) return
+
+      animatedCountRef.current = allCards.length
 
       gsap.fromTo(
-        cards,
+        newCards,
         { yPercent: 30, opacity: 0 },
         {
           yPercent: 0,
@@ -31,14 +46,14 @@ export const ProductGrid = ({ productos = [], loading = false, porPagina = 12 })
           ease: 'expo.out',
           stagger: 0.06,
           scrollTrigger: {
-            trigger: gridRef.current,
-            start: 'top 85%',
+            trigger: newCards[0],
+            start: 'top 88%',
             once: true,
           },
         }
       )
     },
-    { scope: gridRef, dependencies: [loading, productos] }
+    { scope: gridRef, dependencies: [loading, productos.length] }
   )
 
   // Editorial empty state
@@ -64,7 +79,7 @@ export const ProductGrid = ({ productos = [], loading = false, porPagina = 12 })
     )
   }
 
-  // Loading skeletons — keep the asymmetric rhythm
+  // Initial loading skeletons — keep the asymmetric rhythm
   if (loading) {
     return (
       <div
@@ -103,6 +118,14 @@ export const ProductGrid = ({ productos = [], loading = false, porPagina = 12 })
           </div>
         )
       })}
+
+      {/* Skeleton cards appended at the end while loading more */}
+      {loadingMore &&
+        Array.from({ length: 4 }).map((_, i) => (
+          <div key={`more-skeleton-${i}`}>
+            <SkeletonCard />
+          </div>
+        ))}
     </div>
   )
 }

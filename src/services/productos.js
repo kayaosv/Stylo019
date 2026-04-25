@@ -4,15 +4,6 @@ import { extractPathFromPublicUrl } from '@/services/storage'
 
 const POR_PAGINA_DEFAULT = 12
 
-// Filter talla disponible client-side (JSONB field tallas: { XS: stock, ... })
-const filterByTalla = (productos, talla) => {
-  if (!talla) return productos
-  return productos.filter((p) => {
-    const stock = p.tallas?.[talla]
-    return typeof stock === 'number' && stock > 0
-  })
-}
-
 /**
  * Fetch products from Supabase with filters, search, ordering and pagination.
  *
@@ -37,16 +28,15 @@ export const fetchProductos = async ({
   pagina = 1,
   porPagina = POR_PAGINA_DEFAULT,
 } = {}) => {
-  // When filtering by talla we fetch all matching rows then filter client-side
-  // (Supabase JSONB containment queries don't support value > 0 easily)
-  const needsClientFilter = !!tallaDisponible
-
   let query = supabase
     .from('productos')
     .select('*', { count: 'exact' })
 
   // Category
   if (categoria) query = query.eq('categoria', categoria.toLowerCase())
+
+  // Talla — server-side via generated column tallas_disponibles (Migration 010)
+  if (tallaDisponible) query = query.contains('tallas_disponibles', [tallaDisponible])
 
   // Price range
   if (precioMin !== null) query = query.gte('precio', precioMin)
@@ -74,28 +64,14 @@ export const fetchProductos = async ({
       query = query.order('created_at', { ascending: false })
   }
 
-  // Pagination — skip when filtering by talla (need all rows to filter client-side)
-  if (!needsClientFilter) {
-    const from = (pagina - 1) * porPagina
-    const to = from + porPagina - 1
-    query = query.range(from, to)
-  }
+  // Pagination always applies (no client-side filter fallback needed)
+  const from = (pagina - 1) * porPagina
+  const to = from + porPagina - 1
+  query = query.range(from, to)
 
   const { data, count, error } = await query
 
   if (error) return { data: [], count: 0, error }
-
-  // Client-side talla filter + pagination
-  if (needsClientFilter) {
-    const filtered = filterByTalla(data, tallaDisponible)
-    const from = (pagina - 1) * porPagina
-    const paginated = filtered.slice(from, from + porPagina)
-    return {
-      data: paginated.map(withPlaceholderImages),
-      count: filtered.length,
-      error: null,
-    }
-  }
 
   return {
     data: (data ?? []).map(withPlaceholderImages),

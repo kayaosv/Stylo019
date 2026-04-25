@@ -1,4 +1,6 @@
 import { lazy, Suspense } from 'react'
+import { useGSAP } from '@gsap/react'
+import gsap from 'gsap'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute'
@@ -25,6 +27,23 @@ const ProductoForm = lazy(() => import('@/pages/admin/ProductoForm'))
 const HeroSettings = lazy(() => import('@/pages/admin/HeroSettings'))
 const Categorias = lazy(() => import('@/pages/admin/Categorias'))
 
+gsap.registerPlugin(useGSAP)
+
+const PreloaderDismiss = () => {
+  useGSAP(() => {
+    const el = document.getElementById('preloader')
+    if (!el) return
+    gsap.to(el, {
+      opacity: 0,
+      duration: 0.65,
+      ease: 'power2.inOut',
+      delay: 0.4,
+      onComplete: () => el.remove(),
+    })
+  })
+  return null
+}
+
 const RouteFallback = () => (
   <div
     className="flex items-center justify-center"
@@ -41,6 +60,7 @@ const RouteFallback = () => (
 
 const App = () => (
   <BrowserRouter>
+    <PreloaderDismiss />
     <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route element={<Layout />}>
