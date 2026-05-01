@@ -141,7 +141,7 @@ export const Header = ({ variant = 'default' }) => {
   return (
     <header
       ref={headerRef}
-      className="fixed inset-x-0 top-0 z-50 pointer-events-none"
+      className="fixed inset-x-0 top-9 z-50 pointer-events-none"
     >
       {/* Scroll-reactive background — covers meta bar + main bar */}
       <div
@@ -323,13 +323,6 @@ export const Header = ({ variant = 'default' }) => {
           </button>
         </div>
 
-        {/* Floating index marker — decorative, breaks grid */}
-        <span
-          className="hidden xl:block absolute right-8 -bottom-6 label-xs text-[var(--color-muted)] pointer-events-none"
-          style={{ fontSize: '0.55rem' }}
-        >
-          /// NO.001
-        </span>
       </div>
     </header>
   )

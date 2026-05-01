@@ -7,6 +7,7 @@ const navItems = [
   { to: '/admin/productos/nuevo', label: 'Nuevo producto', end: false },
   { to: '/admin/hero', label: 'Hero', end: true },
   { to: '/admin/categorias', label: 'Categorías', end: true },
+  { to: '/admin/envios', label: 'Envíos', end: true },
 ]
 
 export const AdminLayout = () => {

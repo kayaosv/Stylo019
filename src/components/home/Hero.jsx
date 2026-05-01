@@ -13,10 +13,15 @@ const TITLE_WORDS = ['Moda', 'para', 'Ti.']
 
 export const Hero = () => {
   const [heroSrc, setHeroSrc] = useState(HERO_PLACEHOLDER)
+  const [heroConfig, setHeroConfig] = useState({ maxHeight: '78vh', aspectRatio: '4/5', objectFit: 'cover' })
 
   useEffect(() => {
-    fetchSetting('hero_image').then(({ data }) => {
-      if (data?.url) setHeroSrc(data.url)
+    Promise.all([
+      fetchSetting('hero_image'),
+      fetchSetting('hero_image_config'),
+    ]).then(([{ data: img }, { data: cfg }]) => {
+      if (img?.url) setHeroSrc(img.url)
+      if (cfg) setHeroConfig((prev) => ({ ...prev, ...cfg }))
     })
   }, [])
 
@@ -110,20 +115,13 @@ export const Hero = () => {
       style={{ minHeight: '100vh' }}
     >
       {/* Top meta strip — editorial numbers / location */}
+
       <div
         ref={metaRef}
         className="relative z-20 grid grid-cols-12 gap-4 px-6 md:px-10 pt-28 md:pt-36"
       >
-        <div className="col-span-6 md:col-span-3">
-          <span className="label-xs text-[var(--color-muted)]">
-            /// Hero — NO.001
-          </span>
-        </div>
-        <div className="col-span-6 md:col-span-3 md:col-start-10 text-right">
-          <span className="label-xs text-[var(--color-muted)]">
-            37.3886 N // 5.9823 W
-          </span>
-        </div>
+        <div className="col-span-6 md:col-span-3" />
+        <div className="col-span-6 md:col-span-3 md:col-start-10 text-right" />
       </div>
 
       {/* Main grid — asymmetric split */}
@@ -133,8 +131,8 @@ export const Hero = () => {
           <div
             className="relative w-full overflow-hidden"
             style={{
-              aspectRatio: '4/5',
-              maxHeight: '78vh',
+              aspectRatio: heroConfig.aspectRatio,
+              maxHeight: heroConfig.maxHeight,
               background: 'var(--color-surface)',
             }}
           >
@@ -142,8 +140,8 @@ export const Hero = () => {
               ref={imageRef}
               src={heroSrc}
               alt="ModaMariaJose — Stylo019 Sevilla"
-              className="absolute inset-0 w-full h-full object-cover will-change-transform"
-              style={{ transformOrigin: 'center center' }}
+              className="absolute inset-0 w-full h-full will-change-transform"
+              style={{ objectFit: heroConfig.objectFit, transformOrigin: 'center center' }}
             />
             {/* Corner editorial numbers — overlay on image */}
             <span

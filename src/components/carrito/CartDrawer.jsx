@@ -7,6 +7,7 @@ import { ItemCarrito } from '@/components/carrito/ItemCarrito'
 import { CarritoVacio } from '@/components/carrito/CarritoVacio'
 import { formatPrice } from '@/lib/precio'
 import { createCheckoutSession } from '@/services/stripe'
+import { fetchSetting } from '@/services/settings'
 
 gsap.registerPlugin(useGSAP)
 
@@ -26,6 +27,13 @@ export const CartDrawer = () => {
 
   const [paying, setPaying] = useState(false)
   const [stripeError, setStripeError] = useState(null)
+  const [umbral, setUmbral] = useState(50)
+
+  useEffect(() => {
+    fetchSetting('envio_gratis_umbral').then(({ data }) => {
+      if (data != null) setUmbral(data)
+    })
+  }, [])
 
   const rootRef = useRef(null)
   const backdropRef = useRef(null)
@@ -233,6 +241,54 @@ export const CartDrawer = () => {
                 </span>
               </p>
             </div>
+
+            {/* Free shipping progress */}
+            {(() => {
+              const falta = Math.max(0, umbral - subtotal)
+              const progreso = Math.min(100, (subtotal / umbral) * 100)
+              const libre = falta === 0
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span
+                      className="label-xs"
+                      style={{
+                        color: libre ? 'var(--color-accent-ink)' : 'var(--color-muted)',
+                        textTransform: 'none',
+                        letterSpacing: '0.02em',
+                        fontSize: '0.72rem',
+                        fontWeight: libre ? 500 : 400,
+                      }}
+                    >
+                      {libre
+                        ? '¡Envío gratis incluido!'
+                        : `Te faltan ${(falta).toFixed(2).replace('.', ',')}€ para envío gratis`}
+                    </span>
+                    <span className="label-xs" style={{ color: 'var(--color-muted-soft)', fontSize: '0.62rem' }}>
+                      {umbral}€
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: '2px',
+                      background: 'var(--color-surface)',
+                      borderRadius: '1px',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${progreso}%`,
+                        background: libre ? 'var(--color-accent-ink)' : 'var(--color-accent)',
+                        borderRadius: '1px',
+                        transition: 'width 0.4s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+              )
+            })()}
 
             <p
               className="label-xs leading-relaxed"

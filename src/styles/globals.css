@@ -115,6 +115,16 @@
   animation: skeleton-shine 1.4s ease-in-out infinite;
 }
 
+/* ─── Shipping banner ticker ─── */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-25%); }
+}
+
+.shipping-ticker {
+  animation: ticker 28s linear infinite;
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
   width: 3px;
