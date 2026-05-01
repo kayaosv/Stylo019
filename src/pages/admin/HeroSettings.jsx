@@ -151,7 +151,7 @@ const HeroSettings = () => {
   )
 
   return (
-    <div className="flex flex-col" style={{ gap: '2.5rem', maxWidth: '48rem' }}>
+    <div className="flex flex-col" style={{ gap: '2rem' }}>
 
       {/* Header */}
       <div>
@@ -160,159 +160,156 @@ const HeroSettings = () => {
         </span>
         <h1
           className="font-serif text-[var(--color-ink)]"
-          style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1, marginTop: '0.5rem' }}
+          style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1, marginTop: '0.5rem' }}
         >
           Imagen del Hero
         </h1>
-        <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.85rem', marginTop: '0.75rem', lineHeight: 1.5 }}>
-          Esta imagen aparece en la sección principal de la página de inicio.
-        </p>
       </div>
 
       {/* Messages */}
       {error   && <p className="font-sans text-red-600"   style={{ fontSize: '0.85rem' }}>{error}</p>}
       {success && <p className="font-sans text-green-700" style={{ fontSize: '0.85rem' }}>{success}</p>}
 
-      {/* Image preview — uses current config values */}
-      <div className="flex flex-col" style={{ gap: '1rem' }}>
-        <span className="label-xs text-[var(--color-muted)]" style={{ letterSpacing: '0.25em' }}>
-          {imageUrl ? 'Vista previa' : 'Placeholder por defecto'}
-        </span>
-        <div
-          className="relative overflow-hidden bg-[var(--color-surface)]"
-          style={{ aspectRatio: config.aspectRatio, maxHeight: '28rem' }}
-        >
-          <img
-            src={displayUrl}
-            alt="Hero preview"
-            className="h-full w-full"
-            style={{ objectFit: config.objectFit }}
-          />
-          {!imageUrl && (
-            <span
-              className="absolute top-3 left-3 bg-[var(--color-ink)] font-sans text-[var(--color-paper)]"
-              style={{ fontSize: '0.6rem', letterSpacing: '0.22em', textTransform: 'uppercase', padding: '0.3rem 0.55rem' }}
-            >
-              Placeholder
-            </span>
-          )}
-        </div>
-      </div>
+      {/* Two-column: controls left | preview right */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', alignItems: 'start' }}>
 
-      {/* Image actions */}
-      <div className="flex flex-wrap items-center" style={{ gap: '0.75rem' }}>
-        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading || saving}
-          className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
-          style={{ padding: '0.95rem 1.5rem', fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase' }}
-        >
-          {uploading ? 'Subiendo…' : 'Cambiar imagen'}
-        </button>
-        {imageUrl && (
-          <button
-            type="button"
-            onClick={handleRestore}
-            disabled={uploading || saving}
-            className="font-sans text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)] disabled:opacity-50"
-            style={{ padding: '0.95rem 1.5rem', fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', border: '1px solid var(--color-surface)' }}
-          >
-            Restaurar placeholder
-          </button>
-        )}
-      </div>
+        {/* LEFT — controls */}
+        <div className="flex flex-col" style={{ gap: '1.75rem' }}>
 
-      {/* Divider */}
-      <div style={{ borderTop: '1px solid var(--color-surface)' }} />
-
-      {/* Display config */}
-      <div className="flex flex-col" style={{ gap: '1.75rem' }}>
-        <div>
           <span className="label-xs" style={{ color: 'var(--color-accent)', letterSpacing: '0.3em' }}>
             Visualización
           </span>
-          <h2
-            className="font-serif text-[var(--color-ink)]"
-            style={{ fontSize: '1.5rem', fontWeight: 300, letterSpacing: '-0.01em', marginTop: '0.25rem' }}
-          >
-            Ajuste de imagen
-          </h2>
-          <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.82rem', marginTop: '0.4rem', lineHeight: 1.5 }}>
-            Los cambios se ven en tiempo real en la vista previa. Pulsa guardar para aplicarlos en la web.
-          </p>
-        </div>
 
-        {/* Altura máxima */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="label-xs" style={{ color: 'var(--color-muted)', letterSpacing: '0.2em' }}>
-              Altura máxima
-            </span>
-            <span
-              className="font-sans"
-              style={{ fontSize: '0.85rem', color: 'var(--color-ink)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}
-            >
-              {heightValue}vh
-            </span>
+          {/* Altura máxima */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span className="label-xs" style={{ color: 'var(--color-muted)', letterSpacing: '0.2em' }}>Altura máxima</span>
+              <span className="font-sans" style={{ fontSize: '0.85rem', color: 'var(--color-ink)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                {heightValue}vh
+              </span>
+            </div>
+            <input
+              type="range" min={50} max={100} step={5} value={heightValue}
+              onChange={(e) => setConfig((c) => ({ ...c, maxHeight: `${e.target.value}vh` }))}
+              style={{ width: '100%', accentColor: 'var(--color-accent)' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span className="label-xs" style={{ color: 'var(--color-muted-soft)' }}>50vh</span>
+              <span className="label-xs" style={{ color: 'var(--color-muted-soft)' }}>100vh</span>
+            </div>
           </div>
-          <input
-            type="range"
-            min={50}
-            max={100}
-            step={5}
-            value={heightValue}
-            onChange={(e) => setConfig((c) => ({ ...c, maxHeight: `${e.target.value}vh` }))}
-            style={{ width: '100%', accentColor: 'var(--color-accent)' }}
+
+          {/* Proporción */}
+          <RadioGroup
+            label="Proporción de imagen"
+            options={RATIOS}
+            value={config.aspectRatio}
+            onChange={(v) => setConfig((c) => ({ ...c, aspectRatio: v }))}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span className="label-xs" style={{ color: 'var(--color-muted-soft)' }}>50vh</span>
-            <span className="label-xs" style={{ color: 'var(--color-muted-soft)' }}>100vh</span>
+
+          {/* Ajuste */}
+          <RadioGroup
+            label="Ajuste de imagen"
+            options={[
+              { value: 'cover',   label: 'Cover — llena el espacio' },
+              { value: 'contain', label: 'Contain — se ve completa' },
+            ]}
+            value={config.objectFit}
+            onChange={(v) => setConfig((c) => ({ ...c, objectFit: v }))}
+          />
+
+          <div style={{ borderTop: '1px solid var(--color-surface)' }} />
+
+          {/* Image upload */}
+          <div>
+            <span className="label-xs" style={{ color: 'var(--color-muted)', letterSpacing: '0.2em', display: 'block', marginBottom: '0.75rem' }}>
+              Imagen
+            </span>
+            <div className="flex flex-wrap items-center" style={{ gap: '0.6rem' }}>
+              <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading || saving}
+                className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
+                style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase' }}
+              >
+                {uploading ? 'Subiendo…' : 'Cambiar imagen'}
+              </button>
+              {imageUrl && (
+                <button
+                  type="button"
+                  onClick={handleRestore}
+                  disabled={uploading || saving}
+                  className="font-sans text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)] disabled:opacity-50"
+                  style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', border: '1px solid var(--color-surface)' }}
+                >
+                  Restaurar placeholder
+                </button>
+              )}
+            </div>
+            <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.68rem', lineHeight: 1.6, marginTop: '0.6rem' }}>
+              JPG o WEBP, mínimo 1400px de ancho. Máx 5 MB.
+            </p>
+          </div>
+
+          {/* Save */}
+          <button
+            type="button"
+            onClick={handleSaveConfig}
+            disabled={savingCfg}
+            className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
+            style={{ padding: '0.9rem 2rem', fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', alignSelf: 'flex-start' }}
+          >
+            {savingCfg ? 'Guardando…' : 'Guardar ajustes'}
+          </button>
+
+        </div>
+
+        {/* RIGHT — sticky preview */}
+        <div style={{ position: 'sticky', top: '2rem' }}>
+          <span className="label-xs text-[var(--color-muted)]" style={{ letterSpacing: '0.25em', display: 'block', marginBottom: '0.75rem' }}>
+            {imageUrl ? 'Vista previa' : 'Placeholder'}
+          </span>
+          <div
+            className="relative overflow-hidden bg-[var(--color-surface)]"
+            style={{
+              aspectRatio: config.aspectRatio,
+              maxHeight: `min(${config.maxHeight}, 480px)`,
+              transition: 'aspect-ratio 0.3s ease, max-height 0.3s ease',
+            }}
+          >
+            <img
+              src={displayUrl}
+              alt="Hero preview"
+              className="h-full w-full"
+              style={{ objectFit: config.objectFit }}
+            />
+            {!imageUrl && (
+              <span
+                className="absolute top-3 left-3 bg-[var(--color-ink)] font-sans text-[var(--color-paper)]"
+                style={{ fontSize: '0.6rem', letterSpacing: '0.22em', textTransform: 'uppercase', padding: '0.3rem 0.55rem' }}
+              >
+                Placeholder
+              </span>
+            )}
+            <div
+              className="absolute bottom-3 right-3 font-sans"
+              style={{
+                fontSize: '0.58rem',
+                letterSpacing: '0.15em',
+                color: 'var(--color-paper)',
+                background: 'rgba(10,37,64,0.55)',
+                padding: '0.25rem 0.5rem',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              {config.aspectRatio} · {config.maxHeight} · {config.objectFit}
+            </div>
           </div>
         </div>
 
-        {/* Proporción */}
-        <RadioGroup
-          label="Proporción de imagen"
-          options={RATIOS}
-          value={config.aspectRatio}
-          onChange={(v) => setConfig((c) => ({ ...c, aspectRatio: v }))}
-        />
-
-        {/* Ajuste */}
-        <RadioGroup
-          label="Ajuste de imagen"
-          options={[
-            { value: 'cover',   label: 'Cover — llena el espacio' },
-            { value: 'contain', label: 'Contain — se ve completa' },
-          ]}
-          value={config.objectFit}
-          onChange={(v) => setConfig((c) => ({ ...c, objectFit: v }))}
-        />
-
-        {/* Save config */}
-        <button
-          type="button"
-          onClick={handleSaveConfig}
-          disabled={savingCfg}
-          className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
-          style={{
-            padding: '0.9rem 2.5rem',
-            fontSize: '0.72rem',
-            letterSpacing: '0.25em',
-            textTransform: 'uppercase',
-            alignSelf: 'flex-start',
-          }}
-        >
-          {savingCfg ? 'Guardando…' : 'Guardar ajustes'}
-        </button>
       </div>
-
-      {/* Info */}
-      <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.72rem', lineHeight: 1.6 }}>
-        Formato recomendado: JPG o WEBP, mínimo 1400px de ancho. Máx 5 MB.
-      </p>
     </div>
   )
 }
