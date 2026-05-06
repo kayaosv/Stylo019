@@ -64,6 +64,15 @@ const Envios = () => {
   const updateZona = (id, field, value) =>
     setZonas((prev) => prev.map((z) => (z.id === id ? { ...z, [field]: value } : z)))
 
+  const deleteZona = (id) =>
+    setZonas((prev) => prev.filter((z) => z.id !== id))
+
+  const addZona = () =>
+    setZonas((prev) => [
+      ...prev,
+      { id: `zona_${Date.now()}`, nombre: 'Nueva zona', precio: null, activo: true },
+    ])
+
   const handleSave = async () => {
     setSaving(true)
     await Promise.all([
@@ -138,7 +147,7 @@ const Envios = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '2.25rem 1fr 7rem',
+            gridTemplateColumns: '2.25rem 1fr 7rem 2rem',
             gap: '1rem',
             padding: '0 1.5rem 0.5rem',
             alignItems: 'center',
@@ -147,6 +156,7 @@ const Envios = () => {
           <span />
           <span className="label-xs" style={{ color: 'var(--color-muted)', letterSpacing: '0.2em' }}>Zona</span>
           <span className="label-xs" style={{ color: 'var(--color-muted)', letterSpacing: '0.2em', textAlign: 'right' }}>Precio</span>
+          <span />
         </div>
 
         {zonas.map((zona) => (
@@ -156,7 +166,7 @@ const Envios = () => {
             style={{
               padding: '1rem 1.5rem',
               display: 'grid',
-              gridTemplateColumns: '2.25rem 1fr 7rem',
+              gridTemplateColumns: '2.25rem 1fr 7rem 2rem',
               gap: '1rem',
               alignItems: 'center',
               opacity: zona.activo ? 1 : 0.45,
@@ -168,9 +178,20 @@ const Envios = () => {
               onChange={(v) => updateZona(zona.id, 'activo', v)}
             />
 
-            <span style={{ fontSize: '0.9rem', color: 'var(--color-ink)', fontFamily: 'var(--font-sans)' }}>
-              {zona.nombre}
-            </span>
+            <input
+              type="text"
+              value={zona.nombre}
+              onChange={(e) => updateZona(zona.id, 'nombre', e.target.value)}
+              className="border border-[var(--color-surface)] bg-[var(--color-base)]"
+              style={{
+                padding: '0.45rem 0.6rem',
+                fontSize: '0.9rem',
+                color: 'var(--color-ink)',
+                fontFamily: 'var(--font-sans)',
+                outline: 'none',
+                width: '100%',
+              }}
+            />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end' }}>
               <input
@@ -196,9 +217,52 @@ const Envios = () => {
               />
               <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)', flexShrink: 0 }}>€</span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => deleteZona(zona.id)}
+              title="Eliminar zona"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--color-muted)',
+                fontSize: '1rem',
+                lineHeight: 1,
+                padding: '0.2rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0.6,
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+            >
+              ×
+            </button>
           </div>
         ))}
       </div>
+
+      <button
+        type="button"
+        onClick={addZona}
+        className="border border-[var(--color-surface)] bg-[var(--color-paper)] hover:bg-[var(--color-surface)] transition-colors"
+        style={{
+          width: '100%',
+          padding: '0.75rem',
+          fontSize: '0.78rem',
+          letterSpacing: '0.2em',
+          textTransform: 'uppercase',
+          fontFamily: 'var(--font-sans)',
+          color: 'var(--color-muted)',
+          cursor: 'pointer',
+          marginBottom: '1.25rem',
+        }}
+      >
+        + Añadir zona
+      </button>
 
       <p style={{ fontSize: '0.72rem', color: 'var(--color-muted-soft)', marginBottom: '2rem', lineHeight: 1.6 }}>
         Stripe admite un máximo de 5 opciones de envío por sesión. Las zonas sin precio quedan excluidas del conteo.
