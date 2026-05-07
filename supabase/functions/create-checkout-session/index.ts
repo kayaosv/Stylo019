@@ -23,6 +23,7 @@ interface CartItem {
   talla: string
   precioUnitario: number
   cantidad: number
+  imagenes?: string[]
 }
 
 interface ShippingZone {
@@ -51,8 +52,8 @@ serve(async (req) => {
       price_data: {
         currency: "eur",
         product_data: {
-          name: item.nombre,
-          description: `Talla: ${item.talla}`,
+          name: item.talla ? `${item.nombre} — Talla ${item.talla}` : item.nombre,
+          ...(item.imagenes?.[0] ? { images: [item.imagenes[0]] } : {}),
         },
         unit_amount: Math.round(item.precioUnitario * 100),
       },

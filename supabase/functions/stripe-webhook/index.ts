@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
-import Stripe from "https://esm.sh/stripe@13.3.0?target=deno&no-check"
+import Stripe from "npm:stripe@13.3.0"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2023-10-16",
@@ -33,10 +33,15 @@ serve(async (req) => {
 
   const session = event.data.object as Stripe.Checkout.Session
 
-  // Fetch full session with line items and shipping details
-  const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-    expand: ["line_items", "shipping_cost.shipping_rate"],
-  })
+  // Fetch full session with line items — fall back to event data if session doesn't exist (e.g. stripe trigger tests)
+  let fullSession: Stripe.Checkout.Session
+  try {
+    fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ["line_items", "line_items.data.price.product", "shipping_cost.shipping_rate"],
+    })
+  } catch {
+    fullSession = session
+  }
 
   const items = fullSession.line_items?.data ?? []
   const customerEmail = fullSession.customer_details?.email ?? "—"
@@ -62,14 +67,21 @@ serve(async (req) => {
 
   // Build items HTML for the email
   const itemsHtml = items
-    .map(
-      (item) => `
+    .map((item) => {
+      const imageUrl = (item.price?.product as any)?.images?.[0] ?? null
+      const name = item.description ?? (item.price?.product as any)?.name ?? "—"
+      return `
       <tr>
-        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5;">${item.description ?? item.price?.product_data?.name ?? "—"}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            ${imageUrl ? `<img src="${imageUrl}" alt="" width="48" height="48" style="object-fit:cover; border-radius:4px; flex-shrink:0;" />` : ""}
+            <span>${name}</span>
+          </div>
+        </td>
         <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5; text-align:center;">${item.quantity}</td>
         <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5; text-align:right;">€${((item.amount_total ?? 0) / 100).toFixed(2)}</td>
       </tr>`
-    )
+    })
     .join("")
 
   const emailHtml = `
