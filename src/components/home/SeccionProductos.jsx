@@ -19,7 +19,7 @@ export const SeccionProductos = ({
   descripcion,
   orden = 'novedad',
   limit = 4,
-  verTodoHref = '/catalogo',
+  verTodoHref, // Now dynamically computed via catalogoUrl from orden
 }) => {
   const rootRef = useRef(null)
   const titleWordsRef = useRef([])
@@ -30,6 +30,12 @@ export const SeccionProductos = ({
 
   // Split title into words for stagger reveal
   const words = useMemo(() => titulo.split(' '), [titulo])
+
+  // Dynamic URL for catalogue based on orden
+  const catalogoUrl = useMemo(
+    () => `/catalogo?orden=${orden}`,
+    [orden]
+  )
 
   // Memoize filtros to avoid unnecessary re-fetches in the hook
   const filtros = useMemo(
@@ -139,30 +145,36 @@ export const SeccionProductos = ({
           >
             {eyebrow}
           </span>
-          <h2
-            className="flex flex-wrap items-baseline gap-x-[0.25em] gap-y-2"
-            style={{ fontSize: 'clamp(2.8rem, 7vw, 7rem)' }}
+          <Link
+            to={catalogoUrl}
+            className="block group"
+            aria-label={`Ver ${titulo}`}
           >
-            {words.map((word, i) => (
-              <span
-                key={i}
-                className="overflow-hidden inline-block"
-                style={{ lineHeight: 0.88 }}
-              >
+            <h2
+              className="flex flex-wrap items-baseline gap-x-[0.25em] gap-y-2 group-hover:opacity-70 transition-opacity"
+              style={{ fontSize: 'clamp(2.8rem, 7vw, 7rem)' }}
+            >
+              {words.map((word, i) => (
                 <span
-                  ref={(el) => (titleWordsRef.current[i] = el)}
-                  className="block font-serif font-light text-[var(--color-ink)]"
-                  style={{
-                    fontSize: 'inherit',
-                    lineHeight: 0.88,
-                    letterSpacing: '-0.03em',
-                  }}
+                  key={i}
+                  className="overflow-hidden inline-block"
+                  style={{ lineHeight: 0.88 }}
                 >
-                  {word}
+                  <span
+                    ref={(el) => (titleWordsRef.current[i] = el)}
+                    className="block font-serif font-light text-[var(--color-ink)]"
+                    style={{
+                      fontSize: 'inherit',
+                      lineHeight: 0.88,
+                      letterSpacing: '-0.03em',
+                    }}
+                  >
+                    {word}
+                  </span>
                 </span>
-              </span>
-            ))}
-          </h2>
+              ))}
+            </h2>
+          </Link>
         </div>
 
         {/* Right — description + view all */}
@@ -177,7 +189,7 @@ export const SeccionProductos = ({
             {descripcion}
           </p>
           <Link
-            to={verTodoHref}
+            to={catalogoUrl}
             className="group inline-flex items-baseline gap-2 label-xs text-[var(--color-ink)] hover:text-[var(--color-accent)] transition-colors"
           >
             Ver todo
