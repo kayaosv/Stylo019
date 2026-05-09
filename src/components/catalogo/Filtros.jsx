@@ -82,8 +82,8 @@ export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0 }) =
   )
 
   // Toggle handlers
-  const handleCategoria = (cat) => {
-    onChange({ categoria: filtros?.categoria === cat ? null : cat })
+  const handleCategoria = (slug) => {
+    onChange({ categoria: filtros?.categoria === slug ? null : slug })
   }
 
   const handleTalla = (talla) => {
@@ -152,14 +152,14 @@ export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0 }) =
         </span>
         <ul className="flex flex-col gap-2.5">
           {categorias.map((cat) => {
-            const activa = filtros?.categoria === cat.nombre
+            const activa = filtros?.categoria === cat.id
             return (
               <li key={cat.id}>
                 <button
                   type="button"
                   data-cat-btn
                   data-active={activa ? 'true' : 'false'}
-                  onClick={() => handleCategoria(cat.nombre)}
+                  onClick={() => handleCategoria(cat.id)}
                   className="relative inline-block text-left font-serif font-light leading-tight"
                   style={{
                     fontSize: '1rem',

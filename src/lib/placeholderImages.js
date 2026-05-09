@@ -7,6 +7,11 @@ const UNSPLASH = (id, w = 1000) =>
   `https://images.unsplash.com/${id}?w=${w}&auto=format&fit=crop&q=80`
 
 const IMAGES_BY_CATEGORIA = {
+  _default: [
+    'photo-1483985988355-763728e1935b',
+    'photo-1490481651871-ab68de25d43d',
+    'photo-1515372039744-b8f02a3ae446',
+  ],
   vestidos: [
     'photo-1515372039744-b8f02a3ae446',
     'photo-1496747611176-843222e1e57c',
@@ -38,6 +43,31 @@ const IMAGES_BY_CATEGORIA = {
     'photo-1583744946564-b52ac1c389c8',
     'photo-1596755094514-f87e34085b2c',
   ],
+  conjuntos: [
+    'photo-1483985988355-763728e1935b',
+    'photo-1515372039744-b8f02a3ae446',
+    'photo-1496747611176-843222e1e57c',
+  ],
+  'tops-y-body': [
+    'photo-1490481651871-ab68de25d43d',
+    'photo-1596755094514-f87e34085b2c',
+    'photo-1583744946564-b52ac1c389c8',
+  ],
+  curvy: [
+    'photo-1483985988355-763728e1935b',
+    'photo-1525507119028-ed4c629a60a3',
+    'photo-1515372039744-b8f02a3ae446',
+  ],
+  lenceros: [
+    'photo-1496747611176-843222e1e57c',
+    'photo-1490481651871-ab68de25d43d',
+    'photo-1583744946564-b52ac1c389c8',
+  ],
+  camisetas: [
+    'photo-1596755094514-f87e34085b2c',
+    'photo-1506629082955-511b1aa562c8',
+    'photo-1490481651871-ab68de25d43d',
+  ],
 }
 
 // Deterministic string hash → non-negative int
@@ -50,7 +80,7 @@ const hash = (str = '') => {
 // Pick a stable set of placeholder images for a single product.
 // Returns an array of 3 URLs (main + 2 alternates for the gallery).
 export const getPlaceholderImages = (producto) => {
-  const pool = IMAGES_BY_CATEGORIA[producto?.categoria] || IMAGES_BY_CATEGORIA.vestidos
+  const pool = IMAGES_BY_CATEGORIA[producto?.categoria] || IMAGES_BY_CATEGORIA._default
   const seed = hash(producto?.id ?? producto?.nombre ?? '')
   const start = seed % pool.length
   // Rotate pool starting at `start` so each product gets a unique primary image

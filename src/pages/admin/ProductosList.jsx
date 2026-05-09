@@ -5,18 +5,8 @@ import {
   updateProducto,
   deleteProducto,
 } from '@/services/productos'
+import { fetchCategorias } from '@/services/categorias'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
-
-const CATEGORIAS = [
-  { value: '', label: 'Todas' },
-  { value: 'vestidos', label: 'Vestidos' },
-  { value: 'blazers', label: 'Blazers' },
-  { value: 'abrigos', label: 'Abrigos' },
-  { value: 'faldas', label: 'Faldas' },
-  { value: 'pantalones', label: 'Pantalones' },
-  { value: 'blusas', label: 'Blusas' },
-  { value: 'curvy', label: 'Curvy' },
-]
 
 const TALLAS = ['XS', 'S', 'M', 'L', 'XL']
 
@@ -37,6 +27,7 @@ const ProductosList = () => {
 
   const [busqueda, setBusqueda] = useState('')
   const [categoria, setCategoria] = useState('')
+  const [categorias, setCategorias] = useState([])
 
   const [confirmTarget, setConfirmTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
@@ -56,6 +47,10 @@ const ProductosList = () => {
   useEffect(() => {
     loadProductos()
   }, [loadProductos])
+
+  useEffect(() => {
+    fetchCategorias().then(({ data }) => setCategorias(data))
+  }, [])
 
   // Optimistic toggle for boolean fields
   const handleToggle = async (producto, field) => {
@@ -210,9 +205,10 @@ const ProductosList = () => {
             fontSize: '0.9rem',
           }}
         >
-          {CATEGORIAS.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
+          <option value="">Todas</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
             </option>
           ))}
         </select>

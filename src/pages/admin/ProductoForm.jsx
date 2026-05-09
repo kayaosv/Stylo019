@@ -23,7 +23,7 @@ const emptyForm = () => ({
   descripcion: '',
   precio: '',
   precio_oferta: '',
-  categoria: 'vestidos',
+  categoria: '',
   tipo_talla: 'ropa',
   tallas: emptyTallas('ropa'),
   precios_talla: emptyPreciosTalla('ropa'),
@@ -56,8 +56,13 @@ const ProductoForm = () => {
   const [fieldErrors, setFieldErrors] = useState({})
 
   useEffect(() => {
-    fetchCategorias().then(({ data }) => setCategorias(data))
-  }, [])
+    fetchCategorias().then(({ data }) => {
+      setCategorias(data)
+      if (!isEdit && data.length > 0) {
+        setForm((f) => ({ ...f, categoria: f.categoria || data[0].id }))
+      }
+    })
+  }, [isEdit])
 
   // Load existing product when editing
   useEffect(() => {
@@ -111,7 +116,7 @@ const ProductoForm = () => {
         descripcion: data.descripcion ?? '',
         precio: String(data.precio ?? ''),
         precio_oferta: data.precio_oferta ? String(data.precio_oferta) : '',
-        categoria: data.categoria ?? 'vestidos',
+        categoria: data.categoria ?? '',
         tipo_talla: tipoTalla,
         tallas: Object.fromEntries(
           tallasSet.map((t) => [t, Number(data.tallas?.[t]) || 0])
@@ -453,6 +458,7 @@ const ProductoForm = () => {
                     fontSize: '0.95rem',
                   }}
                 >
+                  <option value="" disabled>Selecciona categoría…</option>
                   {categorias.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}
