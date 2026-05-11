@@ -12,7 +12,8 @@ gsap.registerPlugin(useGSAP)
 const TITLE_WORDS = ['Moda', 'para', 'Ti.']
 
 export const Hero = () => {
-  const [heroSrc, setHeroSrc] = useState(HERO_PLACEHOLDER)
+  const [heroSrc, setHeroSrc] = useState(null)
+  const [imageReady, setImageReady] = useState(false)
   const [heroConfig, setHeroConfig] = useState({ maxHeight: '78vh', aspectRatio: '4/5', objectFit: 'cover' })
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export const Hero = () => {
       fetchSetting('hero_image'),
       fetchSetting('hero_image_config'),
     ]).then(([{ data: img }, { data: cfg }]) => {
-      if (img?.url) setHeroSrc(img.url)
+      setHeroSrc(img?.url || HERO_PLACEHOLDER)
       if (cfg) setHeroConfig((prev) => ({ ...prev, ...cfg }))
     })
   }, [])
@@ -38,6 +39,7 @@ export const Hero = () => {
 
   useGSAP(
     () => {
+      if (!imageReady) return
       const tl = gsap.timeline({ defaults: { ease: 'expo.out' } })
 
       // Image reveals from bottom with clip-path
@@ -87,7 +89,7 @@ export const Hero = () => {
         })
       }
     },
-    { scope: rootRef }
+    { scope: rootRef, dependencies: [imageReady] }
   )
 
   // CTA underline hover — draws from left, retracts to right
@@ -142,6 +144,7 @@ export const Hero = () => {
               alt="ModaMariaJose — Stylo019 Sevilla"
               className="absolute inset-0 w-full h-full will-change-transform"
               style={{ objectFit: heroConfig.objectFit, transformOrigin: 'center center' }}
+              onLoad={() => setImageReady(true)}
             />
             {/* Corner editorial numbers — overlay on image */}
             <span
