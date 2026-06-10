@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
+import { getOptimizedUrl } from '@/services/storage'
 
 gsap.registerPlugin(useGSAP)
 
@@ -84,9 +85,10 @@ export const GaleriaProducto = ({ imagenes = [], nombre = '' }) => {
                 }}
               >
                 <img
-                  src={url}
+                  src={getOptimizedUrl(url, { w: 200 })}
                   alt=""
                   loading="lazy"
+                  decoding="async"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               </button>
@@ -101,8 +103,11 @@ export const GaleriaProducto = ({ imagenes = [], nombre = '' }) => {
         >
           <img
             ref={mainImgRef}
-            src={imagenes[activeIdx] ?? fallback}
+            src={getOptimizedUrl(imagenes[activeIdx] ?? fallback, { w: 1200 })}
             alt={nombre}
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
             className="absolute inset-0 w-full h-full object-cover will-change-[opacity]"
           />
         </div>
@@ -135,9 +140,10 @@ export const GaleriaProducto = ({ imagenes = [], nombre = '' }) => {
               }}
             >
               <img
-                src={url}
+                src={getOptimizedUrl(url, { w: i === 0 ? 800 : 600 })}
                 alt={i === 0 ? nombre : ''}
                 loading={i === 0 ? 'eager' : 'lazy'}
+                decoding="async"
                 style={{
                   position: 'absolute',
                   inset: 0,

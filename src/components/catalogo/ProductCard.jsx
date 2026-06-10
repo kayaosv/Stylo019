@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { formatPrice } from '@/lib/precio'
+import { getOptimizedUrl } from '@/services/storage'
 
 gsap.registerPlugin(useGSAP)
 
@@ -155,9 +156,10 @@ export const ProductCard = ({ producto, index = 0 }) => {
         {/* Product image */}
         <img
           ref={imageRef}
-          src={primeraImagen}
+          src={getOptimizedUrl(primeraImagen, { w: 600 })}
           alt={producto?.nombre ?? ''}
-          loading="lazy"
+          loading={index < 4 ? 'eager' : 'lazy'}
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover will-change-transform"
           style={{ transformOrigin: 'center center' }}
         />

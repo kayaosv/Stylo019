@@ -1,6 +1,23 @@
 import { supabase } from '@/lib/supabase'
 
 const BUCKET = 'products'
+
+/**
+ * Return an optimized image URL via Vercel Image Optimization.
+ * In dev the raw URL is returned unchanged (/_vercel/image is not available locally).
+ * Unsplash placeholders are passed through as-is.
+ *
+ * @param {string} url     - Original image URL
+ * @param {object} opts
+ * @param {number} opts.w  - Target width in pixels
+ * @param {number} opts.q  - Quality 1-100 (default 80)
+ */
+export const getOptimizedUrl = (url, { w = 800, q = 80 } = {}) => {
+  if (!url) return url
+  if (!url.includes('supabase.co')) return url
+  if (import.meta.env.DEV) return url
+  return `/_vercel/image?url=${encodeURIComponent(url)}&w=${w}&q=${q}`
+}
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
 const ACCEPTED_MIME = /^image\//
 
@@ -40,7 +57,7 @@ export const uploadProductImage = async (file) => {
     .upload(path, file, {
       upsert: false,
       contentType: file.type,
-      cacheControl: '3600',
+      cacheControl: '31536000',
     })
 
   if (error) {

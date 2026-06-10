@@ -58,7 +58,7 @@ const Catalogo = () => {
       (entries) => {
         if (entries[0].isIntersecting) loadMore()
       },
-      { rootMargin: '200px' }
+      { rootMargin: '0px', threshold: 0.1 }
     )
 
     observer.observe(sentinel)

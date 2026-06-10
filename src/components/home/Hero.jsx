@@ -12,7 +12,7 @@ gsap.registerPlugin(useGSAP)
 const TITLE_WORDS = ['Moda', 'para', 'Ti.']
 
 export const Hero = () => {
-  const [heroSrc, setHeroSrc] = useState(null)
+  const [heroSrc, setHeroSrc] = useState(HERO_PLACEHOLDER)
   const [imageReady, setImageReady] = useState(false)
   const [heroConfig, setHeroConfig] = useState({ maxHeight: '78vh', aspectRatio: '4/5', objectFit: 'cover' })
 
@@ -142,6 +142,9 @@ export const Hero = () => {
               ref={imageRef}
               src={heroSrc}
               alt="ModaMariaJose — Stylo019 Sevilla"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
               className="absolute inset-0 w-full h-full will-change-transform"
               style={{ objectFit: heroConfig.objectFit, transformOrigin: 'center center' }}
               onLoad={() => setImageReady(true)}
