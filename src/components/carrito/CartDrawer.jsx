@@ -177,21 +177,41 @@ export const CartDrawer = () => {
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={closeCart}
-            aria-label="Cerrar carrito"
-            className="flex items-center gap-2 label-xs transition-colors duration-200"
-            style={{ color: 'var(--color-muted)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-muted)')}
-          >
-            <span>Cerrar</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          {hasItems ? (
+            <button
+              type="button"
+              onClick={clearCart}
+              aria-label="Vaciar carrito"
+              className="flex items-center gap-2 label-xs transition-colors duration-200"
+              style={{ color: 'var(--color-muted)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-muted)')}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+              <span>Vaciar carrito</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={closeCart}
+              aria-label="Cerrar carrito"
+              className="flex items-center gap-2 label-xs transition-colors duration-200"
+              style={{ color: 'var(--color-muted)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-muted)')}
+            >
+              <span>Cerrar</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
         </header>
 
         {/* Body */}
@@ -340,16 +360,16 @@ export const CartDrawer = () => {
               Finalizar por WhatsApp
             </a>
 
-            {/* Clear cart */}
+            {/* Continue shopping */}
             <button
               type="button"
-              onClick={clearCart}
+              onClick={closeCart}
               className="label-xs self-center transition-colors duration-200"
               style={{ color: 'var(--color-muted)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-ink)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-muted)')}
             >
-              Vaciar carrito
+              ← Seguir comprando
             </button>
           </footer>
         )}
