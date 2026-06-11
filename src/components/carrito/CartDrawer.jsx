@@ -155,7 +155,7 @@ export const CartDrawer = () => {
       >
         {/* Header */}
         <header
-          className="flex items-center justify-between px-6 pt-8 pb-5 border-b"
+          className="flex items-center justify-between px-6 pt-12 pb-5 border-b"
           style={{ borderColor: 'var(--color-surface)' }}
         >
           <div className="flex items-baseline gap-2">
