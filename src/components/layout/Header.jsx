@@ -174,8 +174,14 @@ export const Header = ({ variant = 'default' }) => {
         {/* LOGO — brutal contrast */}
         <Link
           to="/"
-          className="group relative flex items-end gap-3 leading-none select-none"
           aria-label="Stylo019"
+          className="group relative flex items-end gap-3 leading-none select-none"
+          onClick={(e) => {
+            if (location.pathname === '/') {
+              e.preventDefault()
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }
+          }}
         >
           <div className="overflow-hidden">
             <span
