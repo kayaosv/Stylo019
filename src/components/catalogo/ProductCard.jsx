@@ -4,11 +4,9 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { formatPrice } from '@/lib/precio'
 import { getOptimizedUrl } from '@/services/storage'
+import { estaAgotado, TALLA_SETS } from '@/lib/tallas'
 
 gsap.registerPlugin(useGSAP)
-
-// Fixed size order for consistent display across cards
-const TALLA_ORDER = ['XS', 'S', 'M', 'L', 'XL']
 
 export const ProductCard = ({ producto, index = 0 }) => {
   const navigate = useNavigate()
@@ -36,6 +34,9 @@ export const ProductCard = ({ producto, index = 0 }) => {
   const { int: precioOrigInt, dec: precioOrigDec } = formatPrice(producto?.precio)
   const primeraImagen = producto?.imagenes?.[0] ?? ''
   const categoria = producto?.categoria ?? ''
+  const agotado = estaAgotado(producto?.tallas)
+  // Size order matches the product's talla type (ropa, curvy, calzado…)
+  const tallaOrder = TALLA_SETS[producto?.tipo_talla] ?? TALLA_SETS.ropa
 
   // Build quickTo setters once
   useGSAP(
@@ -161,8 +162,34 @@ export const ProductCard = ({ producto, index = 0 }) => {
           loading={index < 4 ? 'eager' : 'lazy'}
           decoding="async"
           className="absolute inset-0 w-full h-full object-cover will-change-transform"
-          style={{ transformOrigin: 'center center' }}
+          style={{
+            transformOrigin: 'center center',
+            opacity: agotado ? 0.45 : 1,
+            filter: agotado ? 'grayscale(0.6)' : 'none',
+          }}
         />
+
+        {/* Sold-out banner — product fully out of stock across every size */}
+        {agotado && (
+          <div
+            className="absolute left-0 right-0 z-30 flex items-center justify-center py-2.5 pointer-events-none"
+            style={{
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'rgba(10, 10, 10, 0.82)',
+            }}
+          >
+            <span
+              className="label-xs"
+              style={{
+                color: 'var(--color-base)',
+                letterSpacing: '0.22em',
+              }}
+            >
+              Agotado
+            </span>
+          </div>
+        )}
 
         {/* Editorial order number — top left */}
         <span
@@ -330,8 +357,8 @@ export const ProductCard = ({ producto, index = 0 }) => {
         </div>
 
         {/* Sizes row */}
-        <div className="flex items-center gap-3">
-          {TALLA_ORDER.map((talla) => {
+        <div className="flex items-center gap-3 flex-wrap">
+          {tallaOrder.map((talla) => {
             const stock = producto?.tallas?.[talla] ?? 0
             const disponible = stock > 0
             return (
@@ -341,8 +368,9 @@ export const ProductCard = ({ producto, index = 0 }) => {
                 style={{
                   color: disponible
                     ? 'var(--color-ink)'
-                    : 'var(--color-surface)',
+                    : 'var(--color-muted-soft)',
                   textDecoration: disponible ? 'none' : 'line-through',
+                  textDecorationThickness: disponible ? undefined : '1.5px',
                 }}
               >
                 {talla}

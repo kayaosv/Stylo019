@@ -52,8 +52,9 @@ export const SelectorTalla = ({ tallas = {}, seleccionada = null, tipoTalla = 'r
                 ? 'var(--color-base)'
                 : disponible
                   ? 'var(--color-ink)'
-                  : 'var(--color-surface)',
+                  : 'var(--color-muted-soft)',
               textDecoration: disponible ? 'none' : 'line-through',
+              textDecorationThickness: disponible ? undefined : '1.5px',
               cursor: disponible ? 'pointer' : 'not-allowed',
               willChange: 'transform',
             }}

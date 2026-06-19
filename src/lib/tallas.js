@@ -6,6 +6,11 @@ export const TALLA_SETS = {
   pantalon:    ['34', '36', '38', '40', '42', '44'],
 }
 
+// A product is sold out when every size has zero stock.
+// Works for any talla set since it inspects the stock values, not the keys.
+export const estaAgotado = (tallas = {}) =>
+  !Object.values(tallas ?? {}).some((stock) => Number(stock) > 0)
+
 export const TIPO_TALLA_OPTIONS = [
   { value: 'ropa',        label: 'Ropa (XS–XL)' },
   { value: 'curvy',       label: 'Curvy (46–58)' },
