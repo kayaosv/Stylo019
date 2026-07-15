@@ -25,7 +25,10 @@ const isCustomColor = (c) =>
 
 // Normalize raw DB value into a full display-ready array.
 // Accepts both fixed catalog colors and custom colors (id: custom-*).
-// Returns: { id, label, hex, border, imagenes } for all entries.
+// Returns: { id, label, hex, border, imagenes, tallas } for all entries.
+// `tallas` is null unless this color carries its own per-size stock map —
+// products that don't use per-color stock keep it null and fall back to the
+// product's own `tallas`.
 // Drops entries with unknown ids, no images, or invalid custom data.
 export const normalizeColores = (raw) => {
   if (!Array.isArray(raw)) return []
@@ -42,6 +45,7 @@ export const normalizeColores = (raw) => {
         hex: fixed?.hex ?? c.hex ?? '#cccccc',
         border: fixed?.border ?? c.border ?? false,
         imagenes: Array.isArray(c.imagenes) ? c.imagenes.filter(Boolean) : [],
+        tallas: c.tallas && typeof c.tallas === 'object' ? c.tallas : null,
       }
     })
     .filter((c) => c.imagenes.length > 0)

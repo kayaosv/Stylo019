@@ -10,6 +10,7 @@ import { SelectorTalla } from '@/components/producto/SelectorTalla'
 import { ProductosRelacionados } from '@/components/producto/ProductosRelacionados'
 import { getPrecioBase, getPrecioEfectivo, formatPrice } from '@/lib/precio'
 import { normalizeColores } from '@/lib/colores'
+import { estaAgotado } from '@/lib/tallas'
 
 gsap.registerPlugin(useGSAP)
 
@@ -90,13 +91,19 @@ const Producto = () => {
     }
   }, [coloresDisponibles, colorSeleccionado])
 
+  const colorActivo = useMemo(
+    () => coloresDisponibles.find((c) => c.id === colorSeleccionado) ?? null,
+    [coloresDisponibles, colorSeleccionado]
+  )
+
+  // Colors with their own stock map override the product's global tallas;
+  // colors without one (or products with no colors at all) fall back to it.
+  const tallasActivas = colorActivo?.tallas ?? producto?.tallas ?? {}
+
   const imagenesGaleria = useMemo(() => {
-    if (colorSeleccionado) {
-      const entry = coloresDisponibles.find((c) => c.id === colorSeleccionado)
-      if (entry?.imagenes?.length) return entry.imagenes
-    }
+    if (colorActivo?.imagenes?.length) return colorActivo.imagenes
     return producto?.imagenes ?? []
-  }, [producto, coloresDisponibles, colorSeleccionado])
+  }, [producto, colorActivo])
 
   const addItem = useCartStore((s) => s.addItem)
   const openCart = useUIStore((s) => s.openCart)
@@ -347,7 +354,10 @@ const Producto = () => {
                     <button
                       key={c.id}
                       type="button"
-                      onClick={() => setColorSeleccionado(c.id)}
+                      onClick={() => {
+                        setColorSeleccionado(c.id)
+                        setTallaSeleccionada(null)
+                      }}
                       title={c.label}
                       aria-label={c.label}
                       aria-pressed={active}
@@ -381,14 +391,19 @@ const Producto = () => {
               Selecciona tu talla
             </p>
             <SelectorTalla
-              tallas={producto.tallas ?? {}}
+              tallas={tallasActivas}
               seleccionada={tallaSeleccionada}
               tipoTalla={producto.tipo_talla ?? 'ropa'}
               onChange={setTallaSeleccionada}
             />
-            {tallaSeleccionada && (producto.tallas?.[tallaSeleccionada] ?? 0) <= 3 && (
+            {tallaSeleccionada && (tallasActivas?.[tallaSeleccionada] ?? 0) <= 3 && (
               <p className="label-xs" style={{ color: 'var(--color-accent-ink)' }}>
-                Últimas {producto.tallas[tallaSeleccionada]} unidades
+                Últimas {tallasActivas[tallaSeleccionada]} unidades
+              </p>
+            )}
+            {colorActivo && estaAgotado(tallasActivas) && !estaAgotado(producto.tallas) && (
+              <p className="label-xs" style={{ color: 'var(--color-accent-ink)' }}>
+                Agotado en este color — prueba otro color disponible
               </p>
             )}
           </div>
