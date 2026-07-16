@@ -29,7 +29,7 @@ export const ItemCarrito = ({ item }) => {
         opacity: 0,
         duration: 0.35,
         ease: 'power2.in',
-        onComplete: () => removeItem(item.id, item.talla),
+        onComplete: () => removeItem(item.id, item.talla, item.colorId ?? null),
       })
     },
     { scope: rootRef, dependencies: [removing] }
@@ -46,18 +46,18 @@ export const ItemCarrito = ({ item }) => {
 
   const handleMinus = () => {
     bump(minusBtnRef)
-    updateCantidad(item.id, item.talla, item.cantidad - 1)
+    updateCantidad(item.id, item.talla, item.colorId ?? null, item.cantidad - 1)
   }
 
   const handlePlus = () => {
     bump(plusBtnRef)
-    updateCantidad(item.id, item.talla, item.cantidad + 1)
+    updateCantidad(item.id, item.talla, item.colorId ?? null, item.cantidad + 1)
   }
 
   const price = item.precioUnitario ?? getPrecioEfectivo(item, item.talla)
   const subtotal = price * item.cantidad
   const { int, dec } = formatPrice(subtotal)
-  const thumb = item.imagenes?.[0] ?? null
+  const thumb = item.colorImagen ?? item.imagenes?.[0] ?? null
 
   return (
     <div
@@ -99,7 +99,7 @@ export const ItemCarrito = ({ item }) => {
               {item.nombre}
             </Link>
             <p className="label-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-              Talla · {item.talla}
+              {item.colorLabel ? `${item.colorLabel} · Talla ${item.talla}` : `Talla · ${item.talla}`}
             </p>
           </div>
 

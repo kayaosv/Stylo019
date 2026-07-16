@@ -222,7 +222,7 @@ export const CartDrawer = () => {
         >
           {hasItems ? (
             items.map((item) => (
-              <div key={`${item.id}-${item.talla}`} data-cart-item>
+              <div key={`${item.id}-${item.talla}-${item.colorId ?? 'base'}`} data-cart-item>
                 <ItemCarrito item={item} />
               </div>
             ))

@@ -7,37 +7,59 @@ export const useCartStore = create(
     (set, get) => ({
       items: [],
 
-      addItem: (product, talla) => {
+      // `color` is the normalized color entry (from normalizeColores) the
+      // customer had selected, or null for products without color variants.
+      // Two items are the same line only if id + talla + color all match —
+      // e.g. "Negro / M" and "Azul / M" stay as separate cart lines.
+      addItem: (product, talla, color = null) => {
         const items = get().items
+        const colorId = color?.id ?? null
         const existing = items.find(
-          (i) => i.id === product.id && i.talla === talla
+          (i) => i.id === product.id && i.talla === talla && (i.colorId ?? null) === colorId
         )
 
         if (existing) {
           set({
             items: items.map((i) =>
-              i.id === product.id && i.talla === talla
-                ? { ...i, cantidad: i.cantidad + 1 }
-                : i
+              i === existing ? { ...i, cantidad: i.cantidad + 1 } : i
             ),
           })
         } else {
           const precioUnitario = getPrecioEfectivo(product, talla)
-          set({ items: [...items, { ...product, talla, precioUnitario, cantidad: 1 }] })
+          set({
+            items: [
+              ...items,
+              {
+                ...product,
+                talla,
+                colorId,
+                colorLabel: color?.label ?? null,
+                colorImagen: color?.imagenes?.[0] ?? null,
+                precioUnitario,
+                cantidad: 1,
+              },
+            ],
+          })
         }
       },
 
-      removeItem: (id, talla) =>
-        set({ items: get().items.filter((i) => !(i.id === id && i.talla === talla)) }),
+      removeItem: (id, talla, colorId = null) =>
+        set({
+          items: get().items.filter(
+            (i) => !(i.id === id && i.talla === talla && (i.colorId ?? null) === colorId)
+          ),
+        }),
 
-      updateCantidad: (id, talla, cantidad) => {
+      updateCantidad: (id, talla, colorId, cantidad) => {
         if (cantidad <= 0) {
-          get().removeItem(id, talla)
+          get().removeItem(id, talla, colorId)
           return
         }
         set({
           items: get().items.map((i) =>
-            i.id === id && i.talla === talla ? { ...i, cantidad } : i
+            i.id === id && i.talla === talla && (i.colorId ?? null) === colorId
+              ? { ...i, cantidad }
+              : i
           ),
         })
       },
@@ -61,7 +83,8 @@ export const useCartStore = create(
 
         const lines = items.map((i) => {
           const price = i.precioUnitario ?? getPrecioEfectivo(i, i.talla)
-          return `• ${i.nombre} — Talla: ${i.talla} x${i.cantidad} (€${(price * i.cantidad).toFixed(2)})`
+          const color = i.colorLabel ? ` (${i.colorLabel})` : ''
+          return `• ${i.nombre}${color} — Talla: ${i.talla} x${i.cantidad} (€${(price * i.cantidad).toFixed(2)})`
         })
 
         const total = get().total()

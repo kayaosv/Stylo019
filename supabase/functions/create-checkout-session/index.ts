@@ -24,6 +24,8 @@ interface CartItem {
   precioUnitario: number
   cantidad: number
   imagenes?: string[]
+  colorLabel?: string | null
+  colorImagen?: string | null
 }
 
 interface ShippingZone {
@@ -48,17 +50,24 @@ serve(async (req) => {
       })
     }
 
-    const line_items = items.map((item: CartItem) => ({
-      price_data: {
-        currency: "eur",
-        product_data: {
-          name: item.talla ? `${item.nombre} — Talla ${item.talla}` : item.nombre,
-          ...(item.imagenes?.[0] ? { images: [item.imagenes[0]] } : {}),
+    const line_items = items.map((item: CartItem) => {
+      const nameParts = [item.nombre]
+      if (item.colorLabel) nameParts.push(item.colorLabel)
+      if (item.talla) nameParts.push(`Talla ${item.talla}`)
+      const image = item.colorImagen ?? item.imagenes?.[0]
+
+      return {
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: nameParts.join(" — "),
+            ...(image ? { images: [image] } : {}),
+          },
+          unit_amount: Math.round(item.precioUnitario * 100),
         },
-        unit_amount: Math.round(item.precioUnitario * 100),
-      },
-      quantity: item.cantidad,
-    }))
+        quantity: item.cantidad,
+      }
+    })
 
     // Subtotal in euros to evaluate free shipping threshold
     const subtotal = items.reduce(
