@@ -105,8 +105,9 @@ export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0 }) =
   return (
     <aside
       ref={containerRef}
-      className="sticky top-32 flex flex-col gap-12 pr-4"
+      className="sticky top-32 flex flex-col gap-12 pr-4 overflow-y-auto"
       aria-label="Filtros de catálogo"
+      style={{ maxHeight: 'calc(100vh - 10rem)' }}
     >
       {/* Title with overflow mask */}
       <div className="flex flex-col gap-3">
