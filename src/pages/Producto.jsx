@@ -138,7 +138,7 @@ const Producto = () => {
   const handleAddToCart = () => {
     if (!tallaSeleccionada || !producto) return
 
-    addItem(producto, tallaSeleccionada)
+    addItem(producto, tallaSeleccionada, colorActivo)
     openCart()
 
     if (btnAnadirRef.current) {
@@ -350,6 +350,9 @@ const Producto = () => {
                   // normalizeColores already resolves label/hex/border for both
                   // fixed catalog colors and custom colors — no getColorMeta needed
                   const active = colorSeleccionado === c.id
+                  // Colors without their own stock fall back to the product's
+                  // aggregate — same convention as tallasActivas above.
+                  const agotadoColor = estaAgotado(c.tallas ?? producto.tallas)
                   return (
                     <button
                       key={c.id}
@@ -358,15 +361,16 @@ const Producto = () => {
                         setColorSeleccionado(c.id)
                         setTallaSeleccionada(null)
                       }}
-                      title={c.label}
-                      aria-label={c.label}
+                      title={agotadoColor ? `${c.label} — agotado` : c.label}
+                      aria-label={`${c.label}${agotadoColor ? ' — agotado' : ''}`}
                       aria-pressed={active}
-                      className="transition-all"
+                      className="relative transition-all"
                       style={{
                         width: '2.35rem',
                         height: '2.35rem',
                         borderRadius: '9999px',
                         background: c.hex,
+                        opacity: agotadoColor ? 0.35 : 1,
                         border: active
                           ? '2px solid var(--color-ink)'
                           : c.border
@@ -378,7 +382,20 @@ const Producto = () => {
                         outlineOffset: active ? '-4px' : '0',
                         cursor: 'pointer',
                       }}
-                    />
+                    >
+                      {agotadoColor && (
+                        <span
+                          aria-hidden
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            borderRadius: '9999px',
+                            background:
+                              'linear-gradient(to top right, transparent calc(50% - 1px), var(--color-ink) calc(50% - 1px), var(--color-ink) calc(50% + 1px), transparent calc(50% + 1px))',
+                          }}
+                        />
+                      )}
+                    </button>
                   )
                 })}
               </div>
