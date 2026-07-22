@@ -58,56 +58,80 @@ El objetivo es una tienda funcional y visualmente cuidada para una clienta real 
 - Imágenes: Supabase Storage bucket `products`
 - Colores y tokens de diseño en `tailwind.config.js`
 
-## Pendiente — evaluado 2026-07-14, implementar en próxima sesión
 
-Confirmado con el dueño del proyecto que el banner "Agotado" de la galería (`ProductCard.jsx`)
-ya funciona correctamente: solo se activa cuando TODAS las tallas están en 0 (`estaAgotado()`
-en `lib/tallas.js`), y cada talla se tacha por separado en la fila de tallas / en
-`SelectorTalla.jsx`. No requiere cambios. Quedan dos features nuevas por construir:
+## Estado — actualizado 2026-07-22
 
-### 1. Stock por color + talla (no solo por talla)
-Hoy el stock vive únicamente en `productos.tallas` (jsonb talla→cantidad), compartido entre
-todos los colores del producto. Los colores (`productos.colores`) solo son galerías de imagen
-(id, hex, label, imagenes) sin stock propio.
+Los dos puntos evaluados el 2026-07-14 (stock por color+talla, venta física) están
+**ambos implementados**. Detalle:
 
-Cambio propuesto:
-- Extender cada entrada de `colores` con su propio mapa `tallas` (mismo shape que el del
-  producto: `{S: n, M: n, ...}`).
-- Mantener `productos.tallas` como agregado (suma por talla entre colores) vía trigger DB,
-  mismo patrón que el trigger existente `trg_sync_tallas_disponibles` — así todo el código que
-  ya lee `producto.tallas` (banner "Agotado" en `ProductCard.jsx`, filtro de catálogo por
-  talla vía `tallas_disponibles`) sigue funcionando sin tocarlo.
-- `Producto.jsx` ya tiene `colorSeleccionado` (estado de color activo, con
-  `coloresDisponibles = normalizeColores(producto.colores)`) — conectar `SelectorTalla` al
-  mapa `tallas` del color elegido en vez del agregado del producto, para que el picker de
-  talla refleje el stock real de ese color.
-- Nuevo mensaje "Agotado en este color" cuando el color activo tiene todas sus tallas en 0
-  pero el producto en general no.
-- Admin `ProductoForm.jsx`: añadir inputs de stock por talla dentro de cada bloque de color
-  activo (reusar el input que ya existe para las tallas base, sección `usarColores`).
-- Productos sin colores (`usarColores: false`) no cambian — siguen usando `tallas` plano tal
-  cual.
-- Requiere decidir migración de datos: los productos existentes no tienen split de stock por
-  color hoy — o se reparte todo al primer color activo, o se le pide a la dueña que lo
-  reintroduzca a mano tras el cambio de esquema.
+### 1. Stock por color + talla — implementado 2026-07-16, en producción
 
-### 2. Ticket de venta en tienda física (compatibilidad web / física)
-Hoy no existe ningún registro de ventas — ni web (el "checkout" solo arma un mensaje de
-WhatsApp vía `useCartStore.buildWhatsAppMessage`, sin descuento de stock automático) ni
-física. El stock se edita siempre a mano en `ProductoForm.jsx`.
+Cada color en `productos.colores` puede llevar su propio mapa `tallas`
+(migración `009_stock_por_color.sql`). Un trigger DB (`sync_tallas_disponibles`)
+agrega el stock por color hacia `productos.tallas`, así todo el código que ya
+lee ese campo (banner "Agotado", filtro de catálogo) sigue funcionando sin
+tocarlo. Adopción gradual vía el toggle "Stock independiente por color" en
+`ProductoForm.jsx` — los productos existentes no se migraron automáticamente.
 
-Cambio propuesto:
-- Nueva tabla `ventas` (producto_id, color_id nullable, talla, cantidad, precio_unitario,
-  canal 'tienda'|'web', numero_ticket, created_at).
-- Nueva pantalla admin (ej. `/admin/venta-fisica`) para registrar una venta in situ: producto →
-  color (si aplica) → talla → cantidad → confirmar. Debe descontar stock de forma atómica
-  (función RPC en Supabase para evitar condiciones de carrera con ventas simultáneas) y generar
-  un ticket imprimible/visible con número secuencial, fecha, líneas y total.
-- Depende parcialmente del punto 1: si se quiere descontar stock por color en la venta física,
-  hay que resolver primero el modelo de stock por color. Si se implementa antes, puede
-  descontar solo por talla (modelo actual) sin bloquear lo demás.
-- Este registro también sirve como primer historial de ventas del negocio — hoy no existe
-  ninguno, ni online ni físico.
+### 2. Venta física (TPV) + gobernanza de stock + facturación Odoo — implementado 2026-07-22
 
-Ambos puntos evaluados y documentados; pendientes de confirmación explícita antes de tocar
-código o esquema de base de datos.
+Misma arquitectura que el TPV de Vapers Alcosa (`kayaosv/AlcosaProduct`,
+`/admin/tpv`), adaptada al modelo de stock jsonb de este proyecto (no hay
+tabla `product_variants` aquí — los colores son entradas de `productos.colores`,
+no filas propias):
+
+- **`/admin/venta-fisica`** (`src/pages/admin/VentaFisica.jsx`) — pantalla de
+  cobro en mostrador. Escaneo por pistola de código de barras (input con
+  captura de teclado global + `Enter`) o cámara (`BarcodeDetector`), más
+  búsqueda por nombre como respaldo básico. Tras un match se abre un selector
+  de color (si el producto tiene variantes) y luego de talla (solo tallas con
+  stock > 0), se arma el carrito, se elige efectivo/tarjeta y se cobra.
+- **`productos.barcode`** (nuevo, único) + `colores[].barcode` (por color,
+  sin constraint de unicidad a nivel DB por ser jsonb — se controla en
+  `src/lib/barcode.js` reintentando contra `buscar_por_barcode()`).
+  `ProductoForm.jsx` tiene un campo + botón "Generar" por cada color activo
+  y uno para el producto base (fallback cuando no usa variantes).
+- **`buscar_por_barcode(p_barcode)`** — RPC de lookup, revisa primero
+  `productos.barcode`, luego escanea `colores[].barcode`. `SECURITY DEFINER`,
+  solo `authenticated` (revocado de `anon` explícitamente — este proyecto
+  otorga EXECUTE por default a `anon` en funciones nuevas, mismo gotcha ya
+  documentado en Alcosa).
+- **`crear_venta_tpv(p_items, p_metodo_pago)`** — RPC atómica (mismo patrón
+  `FOR UPDATE` que `create_pos_sale()` en Alcosa): bloquea la fila de cada
+  producto, resuelve precio igual que `src/lib/precio.js`
+  (`precios_talla[talla] → precio`, luego `precio_oferta` si es menor),
+  descuenta `colores[i].tallas[talla]` cuando el color tiene stock propio o
+  `productos.tallas[talla]` en caso contrario (el trigger de la migración 009
+  recalcula el agregado solo), inserta en `ventas`/`venta_items`. Guard
+  interno `auth.uid() IS NULL` — mismo criterio que el resto del proyecto
+  (no hay tabla `profiles`/roles, cualquier sesión autenticada es la única
+  cuenta admin de la tienda).
+- **Tablas nuevas `ventas`/`venta_items`** — header + líneas (no el modelo
+  plano de una fila por línea que se había esbozado originalmente), para que
+  una venta completa mapee a una sola factura de Odoo con varias líneas,
+  igual que `orders`/`order_items` en Alcosa. RLS: mismo patrón `admin_all`
+  que el resto de tablas del proyecto (`authenticated`, sin acceso público).
+- **Edge Function `odoo-sync`** — llamada fire-and-forget desde
+  `VentaFisica.jsx` justo después de `crear_venta_tpv()`: la venta ya quedó
+  confirmada y el stock ya se descontó en ese momento, esta función nunca
+  bloquea ni revierte una venta si falla. Crea un `account.move` en Odoo vía
+  JSON-RPC. **Sin credenciales de Odoo todavía** — falla con gracia
+  (`ventas.odoo_sync_status = 'error'`) hasta que se configuren
+  `ODOO_URL`/`ODOO_DB`/`ODOO_API_USER`/`ODOO_API_KEY` como secrets de la
+  Edge Function. Mismo stub que Alcosa: crea `account.move`, no `pos.order`
+  — revisar esa decisión cuando haya credenciales reales + Veri*Factu.
+- Ticket impreso (`TicketVenta.jsx`, `window.print()`, ancho 80mm) — no es
+  factura legal, usa el CIF/dirección reales ya publicados en
+  `Privacidad.jsx`/`Terminos.jsx` (CIF 28753199W, Av. Ildefonso Marañón
+  Lavín 9, 41019 Sevilla).
+
+Trabajo en rama `feature/venta-fisica-odoo` (no mergeada a `main` — pendiente
+de revisión visual del dueño antes de mergear, ver preview de Vercel).
+Migración `010_venta_fisica_odoo.sql` y la Edge Function ya están aplicadas
+en la base de datos de producción (additivo, no rompe nada existente) — solo
+el código de la UI está todavía en preview.
+
+**Pendiente**: credenciales de Odoo para ModaMariaJose (nueva cuenta de
+usuario dedicada en Odoo, no la cuenta admin del dueño — mismo criterio que
+en Alcosa) + decidir si hace falta certificado AEAT/Veri*Factu antes de
+emitir facturas reales.
