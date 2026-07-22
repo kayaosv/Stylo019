@@ -27,6 +27,7 @@ const ProductoForm = lazy(() => import('@/pages/admin/ProductoForm'))
 const HeroSettings = lazy(() => import('@/pages/admin/HeroSettings'))
 const Categorias = lazy(() => import('@/pages/admin/Categorias'))
 const Envios = lazy(() => import('@/pages/admin/Envios'))
+const VentaFisica = lazy(() => import('@/pages/admin/VentaFisica'))
 
 gsap.registerPlugin(useGSAP)
 
@@ -91,6 +92,7 @@ const App = () => (
           <Route path="hero" element={<HeroSettings />} />
           <Route path="categorias" element={<Categorias />} />
           <Route path="envios" element={<Envios />} />
+          <Route path="venta-fisica" element={<VentaFisica />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

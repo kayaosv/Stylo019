@@ -9,13 +9,14 @@ import { ImageUploader } from '@/components/admin/ImageUploader'
 import { COLORES_DISPONIBLES, getColorMeta } from '@/lib/colores'
 import { TALLA_SETS, TIPO_TALLA_OPTIONS } from '@/lib/tallas'
 import { fetchCategorias } from '@/services/categorias'
+import { generarBarcodeUnico } from '@/lib/barcode'
 
 const emptyTallas = (tipo) => Object.fromEntries(TALLA_SETS[tipo].map((t) => [t, 0]))
 const emptyPreciosTalla = (tipo) => Object.fromEntries(TALLA_SETS[tipo].map((t) => [t, '']))
 
 const EMPTY_CUSTOM_SLOTS = (tipo = 'ropa') => [
-  { id: 'custom-1', label: '', hex: '#ffffff', activo: false, imagenes: [], tallas: emptyTallas(tipo) },
-  { id: 'custom-2', label: '', hex: '#ffffff', activo: false, imagenes: [], tallas: emptyTallas(tipo) },
+  { id: 'custom-1', label: '', hex: '#ffffff', activo: false, imagenes: [], tallas: emptyTallas(tipo), barcode: '' },
+  { id: 'custom-2', label: '', hex: '#ffffff', activo: false, imagenes: [], tallas: emptyTallas(tipo), barcode: '' },
 ]
 
 const emptyForm = () => ({
@@ -36,6 +37,7 @@ const emptyForm = () => ({
   destacado: false,
   mas_vendido: false,
   activo: true,
+  barcode: '',
 })
 
 const parseStock = (value) => {
@@ -97,6 +99,7 @@ const ProductoForm = () => {
             activo: true,
             imagenes: Array.isArray(c.imagenes) ? c.imagenes : [],
             tallas: tallasDeColor(c),
+            barcode: typeof c.barcode === 'string' ? c.barcode : '',
           }
         } else if (c.id === 'custom-1' || c.id === 'custom-2') {
           // Custom color — restore label, hex and images to its slot
@@ -108,6 +111,7 @@ const ProductoForm = () => {
             activo: true,
             imagenes: Array.isArray(c.imagenes) ? c.imagenes : [],
             tallas: tallasDeColor(c),
+            barcode: typeof c.barcode === 'string' ? c.barcode : '',
           }
         }
       })
@@ -144,6 +148,7 @@ const ProductoForm = () => {
         destacado: !!data.destacado,
         mas_vendido: !!data.mas_vendido,
         activo: data.activo ?? true,
+        barcode: data.barcode ?? '',
       })
       setLoading(false)
     }
@@ -237,6 +242,51 @@ const ProductoForm = () => {
     }))
   }
 
+  const updateColorBarcode = (colorId, value) => {
+    setForm((prev) => ({
+      ...prev,
+      colores: {
+        ...prev.colores,
+        [colorId]: { ...prev.colores[colorId], barcode: value },
+      },
+    }))
+  }
+
+  const [generandoBarcode, setGenerandoBarcode] = useState(null) // key of the field currently generating, or null
+
+  const generarBarcodeBase = async () => {
+    setGenerandoBarcode('base')
+    try {
+      updateField('barcode', await generarBarcodeUnico())
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setGenerandoBarcode(null)
+    }
+  }
+
+  const generarBarcodeColor = async (colorId) => {
+    setGenerandoBarcode(colorId)
+    try {
+      updateColorBarcode(colorId, await generarBarcodeUnico())
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setGenerandoBarcode(null)
+    }
+  }
+
+  const generarBarcodeCustom = async (idx) => {
+    setGenerandoBarcode(`custom-${idx}`)
+    try {
+      updateCustomSlot(idx, 'barcode', await generarBarcodeUnico())
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setGenerandoBarcode(null)
+    }
+  }
+
   const updateCustomSlot = (idx, field, value) => {
     setForm((prev) => ({
       ...prev,
@@ -307,6 +357,7 @@ const ProductoForm = () => {
           id: c.id,
           imagenes: (form.colores[c.id]?.imagenes ?? []).filter(Boolean),
           ...(form.stockPorColor ? { tallas: form.colores[c.id]?.tallas ?? {} } : {}),
+          ...(form.colores[c.id]?.barcode ? { barcode: form.colores[c.id].barcode } : {}),
         }))
         .filter((c) => c.imagenes.length > 0)
 
@@ -318,6 +369,7 @@ const ProductoForm = () => {
           hex: c.hex,
           imagenes: c.imagenes.filter(Boolean),
           ...(form.stockPorColor ? { tallas: c.tallas ?? {} } : {}),
+          ...(c.barcode ? { barcode: c.barcode } : {}),
         }))
 
       const all = [...fijos, ...custom]
@@ -338,6 +390,7 @@ const ProductoForm = () => {
       destacado: form.destacado,
       mas_vendido: form.mas_vendido,
       activo: form.activo,
+      barcode: form.barcode.trim() || null,
     }
 
     const { error: err } = isEdit
@@ -545,6 +598,18 @@ const ProductoForm = () => {
                     </option>
                   ))}
                 </select>
+              </Field>
+
+              <Field
+                label="Código de barras"
+                hint="Usado cuando el producto no tiene variantes de color, o como respaldo"
+              >
+                <BarcodeInput
+                  value={form.barcode}
+                  onChange={(v) => updateField('barcode', v)}
+                  onGenerate={generarBarcodeBase}
+                  generating={generandoBarcode === 'base'}
+                />
               </Field>
             </div>
           </div>
@@ -757,6 +822,16 @@ const ProductoForm = () => {
                       value={form.colores[c.id]?.imagenes ?? []}
                       onChange={(next) => updateColorImagenes(c.id, next)}
                     />
+                    <div style={{ marginTop: '1rem' }}>
+                      <Field label="Código de barras de este color">
+                        <BarcodeInput
+                          value={form.colores[c.id]?.barcode ?? ''}
+                          onChange={(v) => updateColorBarcode(c.id, v)}
+                          onGenerate={() => generarBarcodeColor(c.id)}
+                          generating={generandoBarcode === c.id}
+                        />
+                      </Field>
+                    </div>
                     {form.stockPorColor && (
                       <div
                         className="grid"
@@ -936,6 +1011,16 @@ const ProductoForm = () => {
                             value={slot.imagenes}
                             onChange={(next) => updateCustomSlotImagenes(idx, next)}
                           />
+                          <div style={{ marginTop: '1rem' }}>
+                            <Field label="Código de barras de este color">
+                              <BarcodeInput
+                                value={slot.barcode ?? ''}
+                                onChange={(v) => updateCustomSlot(idx, 'barcode', v)}
+                                onGenerate={() => generarBarcodeCustom(idx)}
+                                generating={generandoBarcode === `custom-${idx}`}
+                              />
+                            </Field>
+                          </div>
                           {form.stockPorColor && (
                             <div
                               className="grid"
@@ -1104,7 +1189,7 @@ const Section = ({ title, hint, children }) => (
   </section>
 )
 
-const Field = ({ label, required, error, children }) => (
+const Field = ({ label, required, error, hint, children }) => (
   <label className="flex flex-col" style={{ gap: '0.5rem' }}>
     <span
       className="label-xs text-[var(--color-muted)]"
@@ -1118,6 +1203,11 @@ const Field = ({ label, required, error, children }) => (
       )}
     </span>
     {children}
+    {hint && (
+      <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.72rem' }}>
+        {hint}
+      </span>
+    )}
     {error && (
       <span
         className="font-sans text-red-600"
@@ -1127,6 +1217,45 @@ const Field = ({ label, required, error, children }) => (
       </span>
     )}
   </label>
+)
+
+// Text input + "Generar" button, shared by the base-product and per-color
+// barcode fields — generation calls generarBarcodeUnico() (checks against
+// both productos.barcode and every colores[].barcode via buscar_por_barcode).
+const BarcodeInput = ({ value, onChange, onGenerate, generating }) => (
+  <div className="flex" style={{ gap: '0.5rem' }}>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="Escanear o pegar código…"
+      className="bg-[var(--color-paper)] font-sans text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+      style={{
+        border: '1px solid var(--color-surface)',
+        padding: '0.85rem 1rem',
+        fontSize: '0.9rem',
+        flex: 1,
+        minWidth: 0,
+      }}
+    />
+    <button
+      type="button"
+      onClick={onGenerate}
+      disabled={generating}
+      className="font-sans text-[var(--color-muted)] hover:text-[var(--color-ink)] disabled:opacity-50"
+      style={{
+        border: '1px solid var(--color-surface)',
+        padding: '0 1rem',
+        fontSize: '0.72rem',
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}
+    >
+      {generating ? '…' : 'Generar'}
+    </button>
+  </div>
 )
 
 const FlagRow = ({ label, hint, checked, onChange }) => (

@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 const navItems = [
   { to: '/admin', label: 'Productos', end: true },
   { to: '/admin/productos/nuevo', label: 'Nuevo producto', end: false },
+  { to: '/admin/venta-fisica', label: 'Venta física', end: true },
   { to: '/admin/hero', label: 'Hero', end: true },
   { to: '/admin/categorias', label: 'Categorías', end: true },
   { to: '/admin/envios', label: 'Envíos', end: true },
