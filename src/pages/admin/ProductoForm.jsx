@@ -216,17 +216,27 @@ const ProductoForm = () => {
   }
 
   const updateColorImagenes = (colorId, imagenes) => {
+    const current = form.colores[colorId]
+    const isFirstImage = (current?.imagenes ?? []).length === 0 && imagenes.length > 0
     setForm((prev) => ({
       ...prev,
       colores: {
         ...prev.colores,
         [colorId]: {
+          ...current,
           activo: true,
           imagenes,
-          tallas: prev.colores[colorId]?.tallas ?? emptyTallas(prev.tipo_talla),
+          tallas: current?.tallas ?? emptyTallas(prev.tipo_talla),
         },
       },
     }))
+    // Auto-generates a barcode the moment a color gets its first photo —
+    // so uploading a variant is enough, no separate "Generar" click needed.
+    // Only when it doesn't already have one, so a manually-entered/edited
+    // barcode is never overwritten.
+    if (isFirstImage && !current?.barcode) {
+      generarBarcodeColor(colorId)
+    }
   }
 
   const updateColorTalla = (colorId, talla, value) => {
@@ -276,6 +286,17 @@ const ProductoForm = () => {
     }
   }
 
+  // Auto-generates the base-product barcode on its first photo, same as
+  // updateColorImagenes — only relevant when this product isn't using
+  // color variants (see the barcode Field's hint), so skipped otherwise.
+  const updateImagenesBase = (imagenes) => {
+    const isFirstImage = form.imagenes.length === 0 && imagenes.length > 0
+    updateField('imagenes', imagenes)
+    if (isFirstImage && !form.usarColores && !form.barcode) {
+      generarBarcodeBase()
+    }
+  }
+
   const generarBarcodeCustom = async (idx) => {
     setGenerandoBarcode(`custom-${idx}`)
     try {
@@ -297,12 +318,17 @@ const ProductoForm = () => {
   }
 
   const updateCustomSlotImagenes = (idx, imagenes) => {
+    const current = form.coloresCustom[idx]
+    const isFirstImage = (current?.imagenes ?? []).length === 0 && imagenes.length > 0
     setForm((prev) => ({
       ...prev,
       coloresCustom: prev.coloresCustom.map((slot, i) =>
         i === idx ? { ...slot, imagenes } : slot
       ),
     }))
+    if (isFirstImage && !current?.barcode) {
+      generarBarcodeCustom(idx)
+    }
   }
 
   const updateCustomSlotTalla = (idx, talla, value) => {
@@ -1102,7 +1128,7 @@ const ProductoForm = () => {
         >
           <ImageUploader
             value={form.imagenes}
-            onChange={(next) => updateField('imagenes', next)}
+            onChange={(next) => updateImagenesBase(next)}
           />
         </Section>
 

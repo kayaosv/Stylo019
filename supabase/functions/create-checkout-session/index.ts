@@ -2,12 +2,19 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@13.3.0?target=deno&no-check"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+// Never trusts price/stock the client sends — each cart line is
+// re-resolved against the live catalog via resolver_linea_checkout()
+// (same price hierarchy as src/lib/precio.js) before building the Stripe
+// session. The order itself is NOT created here and stock is NOT
+// decremented here — that only happens once Stripe confirms payment (see
+// stripe-webhook), so the cart is staged in checkout_drafts in the
+// meantime and picked up there via session.metadata.draft_id.
+
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2023-10-16",
   httpClient: Stripe.createFetchHttpClient(),
 })
 
-// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically by Supabase
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -18,14 +25,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  })
+
+// success_url/cancel_url come from the client to build the return link —
+// validated against a whitelist instead of trusted blindly, so this
+// endpoint can't be used to mint a real Stripe payment link that redirects
+// to an unrelated domain after charging the card.
+const ALLOWED_ORIGIN_SUFFIXES = [
+  ".vercel.app",
+  "stylo019.es",
+  "localhost:5173",
+  "localhost:4173",
+]
+
+const isAllowedUrl = (url: string) => {
+  try {
+    const { host, hostname } = new URL(url)
+    return ALLOWED_ORIGIN_SUFFIXES.some((s) => hostname === s || hostname.endsWith(`.${s}`) || hostname.endsWith(s) || host === s)
+  } catch {
+    return false
+  }
+}
+
 interface CartItem {
-  nombre: string
+  id: string
+  colorId?: string | null
   talla: string
-  precioUnitario: number
   cantidad: number
-  imagenes?: string[]
   colorLabel?: string | null
   colorImagen?: string | null
+  imagenes?: string[]
 }
 
 interface ShippingZone {
@@ -44,36 +77,70 @@ serve(async (req) => {
     const { items, success_url, cancel_url } = await req.json()
 
     if (!items || items.length === 0) {
-      return new Response(JSON.stringify({ error: "Carrito vacío" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      })
+      return json({ error: "Carrito vacío" }, 400)
+    }
+    if (!success_url || !cancel_url || !isAllowedUrl(success_url) || !isAllowedUrl(cancel_url)) {
+      return json({ error: "URL de retorno no permitida" }, 400)
     }
 
-    const line_items = items.map((item: CartItem) => {
-      const nameParts = [item.nombre]
-      if (item.colorLabel) nameParts.push(item.colorLabel)
+    for (const item of items as CartItem[]) {
+      if (!item.id || !item.talla || !item.cantidad || item.cantidad <= 0) {
+        return json({ error: "Línea de carrito inválida" }, 400)
+      }
+    }
+
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = []
+    const draftItems: { producto_id: string; color_id: string | null; talla: string; cantidad: number }[] = []
+    let subtotal = 0
+
+    for (const item of items as CartItem[]) {
+      const colorId = item.colorId ?? null
+
+      const { data, error } = await supabase.rpc("resolver_linea_checkout", {
+        p_producto_id: item.id,
+        p_color_id: colorId,
+        p_talla: item.talla,
+      })
+      if (error) throw error
+
+      const line = Array.isArray(data) ? data[0] : data
+      if (!line?.disponible) {
+        return json({ error: `"${line?.producto_nombre ?? "Producto"}" ya no está disponible` }, 409)
+      }
+      if (line.stock_disponible < item.cantidad) {
+        return json({ error: `Solo quedan ${line.stock_disponible} unidades de "${line.producto_nombre}"` }, 409)
+      }
+
+      const nameParts = [line.producto_nombre]
+      if (line.color_label) nameParts.push(line.color_label)
       if (item.talla) nameParts.push(`Talla ${item.talla}`)
       const image = item.colorImagen ?? item.imagenes?.[0]
 
-      return {
+      const unitPrice = Number(line.precio_unitario)
+      subtotal += unitPrice * item.cantidad
+
+      line_items.push({
         price_data: {
           currency: "eur",
           product_data: {
             name: nameParts.join(" — "),
             ...(image ? { images: [image] } : {}),
           },
-          unit_amount: Math.round(item.precioUnitario * 100),
+          unit_amount: Math.round(unitPrice * 100),
         },
         quantity: item.cantidad,
-      }
-    })
+      })
 
-    // Subtotal in euros to evaluate free shipping threshold
-    const subtotal = items.reduce(
-      (sum: number, item: CartItem) => sum + item.precioUnitario * item.cantidad,
-      0
-    )
+      draftItems.push({ producto_id: item.id, color_id: colorId, talla: item.talla, cantidad: item.cantidad })
+    }
+
+    const { data: draft, error: draftError } = await supabase
+      .from("checkout_drafts")
+      .insert({ items: draftItems })
+      .select("id")
+      .single()
+
+    if (draftError) throw draftError
 
     // Fetch shipping config from site_settings — errors fall back to safe defaults
     const [{ data: zonasRow }, { data: umbralRow }] = await Promise.all([
@@ -85,7 +152,6 @@ serve(async (req) => {
     const umbral: number = umbralRow?.value ?? 50
     const isFreeShipping = subtotal >= umbral
 
-    // Build Stripe shipping_options — only active zones with a price, max 5 (Stripe limit)
     const shippingOptions = zonas
       .filter((z) => z.activo && z.precio != null)
       .slice(0, 5)
@@ -106,6 +172,7 @@ serve(async (req) => {
       mode: "payment",
       success_url,
       cancel_url,
+      metadata: { draft_id: draft.id },
     }
 
     if (shippingOptions.length > 0) {
@@ -115,14 +182,9 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionParams)
 
-    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
+    return json({ url: session.url, sessionId: session.id })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido"
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
+    return json({ error: message }, 500)
   }
 })
