@@ -3,7 +3,8 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
-  { to: '/admin', label: 'Productos', end: true },
+  { to: '/admin', label: 'Dashboard', end: true },
+  { to: '/admin/productos', label: 'Productos', end: true },
   { to: '/admin/productos/nuevo', label: 'Nuevo producto', end: false },
   { to: '/admin/venta-fisica', label: 'Venta física', end: true },
   { to: '/admin/pedidos', label: 'Pedidos', end: false },

@@ -430,7 +430,7 @@ const ProductoForm = () => {
       return
     }
 
-    navigate('/admin', { replace: true })
+    navigate('/admin/productos', { replace: true })
   }
 
   // Live total per size across every active color — mirrors the DB trigger's
@@ -464,7 +464,7 @@ const ProductoForm = () => {
       >
         <div>
           <Link
-            to="/admin"
+            to="/admin/productos"
             className="label-xs text-[var(--color-muted)] hover:text-[var(--color-ink)]"
             style={{ letterSpacing: '0.25em' }}
           >
@@ -1147,7 +1147,7 @@ const ProductoForm = () => {
           style={{ gap: '0.75rem', paddingTop: '2rem' }}
         >
           <Link
-            to="/admin"
+            to="/admin/productos"
             className="font-sans text-[var(--color-muted)] hover:text-[var(--color-ink)]"
             style={{
               fontSize: '0.72rem',

@@ -22,6 +22,7 @@ const Login = lazy(() => import('@/pages/admin/Login'))
 const AdminLayout = lazy(() =>
   import('@/components/admin/AdminLayout').then((m) => ({ default: m.AdminLayout }))
 )
+const Dashboard = lazy(() => import('@/pages/admin/Dashboard'))
 const ProductosList = lazy(() => import('@/pages/admin/ProductosList'))
 const ProductoForm = lazy(() => import('@/pages/admin/ProductoForm'))
 const HeroSettings = lazy(() => import('@/pages/admin/HeroSettings'))
@@ -88,7 +89,8 @@ const App = () => (
             </ProtectedRoute>
           }
         >
-          <Route index element={<ProductosList />} />
+          <Route index element={<Dashboard />} />
+          <Route path="productos" element={<ProductosList />} />
           <Route path="productos/nuevo" element={<ProductoForm />} />
           <Route path="productos/:id" element={<ProductoForm />} />
           <Route path="hero" element={<HeroSettings />} />
