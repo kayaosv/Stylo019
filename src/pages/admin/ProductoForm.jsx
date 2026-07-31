@@ -14,10 +14,18 @@ import { generarBarcodeUnico } from '@/lib/barcode'
 const emptyTallas = (tipo) => Object.fromEntries(TALLA_SETS[tipo].map((t) => [t, 0]))
 const emptyPreciosTalla = (tipo) => Object.fromEntries(TALLA_SETS[tipo].map((t) => [t, '']))
 
-const EMPTY_CUSTOM_SLOTS = (tipo = 'ropa') => [
-  { id: 'custom-1', label: '', hex: '#ffffff', activo: false, imagenes: [], tallas: emptyTallas(tipo), barcode: '' },
-  { id: 'custom-2', label: '', hex: '#ffffff', activo: false, imagenes: [], tallas: emptyTallas(tipo), barcode: '' },
-]
+// A blank custom-color entry, appended to form.coloresCustom by "+ Agregar
+// color" — the array itself is the source of truth for how many custom
+// colors this product has, no fixed slot count. Presence in the array
+// means "wanted" (no separate activo flag); removing one deletes it.
+const newCustomColor = (tipo = 'ropa') => ({
+  id: crypto.randomUUID(),
+  label: '',
+  hex: '#ffffff',
+  imagenes: [],
+  tallas: emptyTallas(tipo),
+  barcode: '',
+})
 
 const emptyForm = () => ({
   nombre: '',
@@ -33,7 +41,7 @@ const emptyForm = () => ({
   usarColores: false,
   stockPorColor: false,
   colores: {},
-  coloresCustom: EMPTY_CUSTOM_SLOTS('ropa'),
+  coloresCustom: [],
   destacado: false,
   mas_vendido: false,
   activo: true,
@@ -87,38 +95,35 @@ const ProductoForm = () => {
       const hasPT = Object.keys(pt).length > 0
       const rawColores = Array.isArray(data.colores) ? data.colores : []
       const coloresMap = {}
-      const coloresCustom = EMPTY_CUSTOM_SLOTS(tipoTalla)
+      const coloresCustom = []
       const tallasDeColor = (c) =>
         Object.fromEntries(tallasSet.map((t) => [t, Number(c?.tallas?.[t]) || 0]))
 
       rawColores.forEach((c) => {
         if (!c || typeof c.id !== 'string') return
         if (getColorMeta(c.id)) {
-          // Fixed catalog color
+          // Fixed catalog color (blanco/negro)
           coloresMap[c.id] = {
             activo: true,
             imagenes: Array.isArray(c.imagenes) ? c.imagenes : [],
             tallas: tallasDeColor(c),
             barcode: typeof c.barcode === 'string' ? c.barcode : '',
           }
-        } else if (c.id === 'custom-1' || c.id === 'custom-2') {
-          // Custom color — restore label, hex and images to its slot
-          const idx = c.id === 'custom-1' ? 0 : 1
-          coloresCustom[idx] = {
+        } else if (typeof c.label === 'string' && typeof c.hex === 'string') {
+          // Custom/free color — any id, own label+hex carried in the row
+          coloresCustom.push({
             id: c.id,
-            label: typeof c.label === 'string' ? c.label : '',
-            hex: typeof c.hex === 'string' ? c.hex : '#ffffff',
-            activo: true,
+            label: c.label,
+            hex: c.hex,
             imagenes: Array.isArray(c.imagenes) ? c.imagenes : [],
             tallas: tallasDeColor(c),
             barcode: typeof c.barcode === 'string' ? c.barcode : '',
-          }
+          })
         }
       })
 
       const hasColores =
-        Object.keys(coloresMap).length > 0 ||
-        coloresCustom.some((c) => c.activo)
+        Object.keys(coloresMap).length > 0 || coloresCustom.length > 0
 
       // A product uses per-color stock if at least one color entry carried
       // its own `tallas` map in the DB (see migration 009_stock_por_color).
@@ -297,10 +302,10 @@ const ProductoForm = () => {
     }
   }
 
-  const generarBarcodeCustom = async (idx) => {
-    setGenerandoBarcode(`custom-${idx}`)
+  const generarBarcodeCustom = async (colorId) => {
+    setGenerandoBarcode(colorId)
     try {
-      updateCustomSlot(idx, 'barcode', await generarBarcodeUnico())
+      updateCustomSlot(colorId, 'barcode', await generarBarcodeUnico())
     } catch (err) {
       setError(err.message)
     } finally {
@@ -308,35 +313,50 @@ const ProductoForm = () => {
     }
   }
 
-  const updateCustomSlot = (idx, field, value) => {
+  const updateCustomSlot = (colorId, field, value) => {
     setForm((prev) => ({
       ...prev,
-      coloresCustom: prev.coloresCustom.map((slot, i) =>
-        i === idx ? { ...slot, [field]: value } : slot
+      coloresCustom: prev.coloresCustom.map((slot) =>
+        slot.id === colorId ? { ...slot, [field]: value } : slot
       ),
     }))
   }
 
-  const updateCustomSlotImagenes = (idx, imagenes) => {
-    const current = form.coloresCustom[idx]
+  const updateCustomSlotImagenes = (colorId, imagenes) => {
+    const current = form.coloresCustom.find((s) => s.id === colorId)
     const isFirstImage = (current?.imagenes ?? []).length === 0 && imagenes.length > 0
     setForm((prev) => ({
       ...prev,
-      coloresCustom: prev.coloresCustom.map((slot, i) =>
-        i === idx ? { ...slot, imagenes } : slot
+      coloresCustom: prev.coloresCustom.map((slot) =>
+        slot.id === colorId ? { ...slot, imagenes } : slot
       ),
     }))
     if (isFirstImage && !current?.barcode) {
-      generarBarcodeCustom(idx)
+      generarBarcodeCustom(colorId)
     }
   }
 
-  const updateCustomSlotTalla = (idx, talla, value) => {
+  const updateCustomSlotTalla = (colorId, talla, value) => {
     setForm((prev) => ({
       ...prev,
-      coloresCustom: prev.coloresCustom.map((slot, i) =>
-        i === idx ? { ...slot, tallas: { ...slot.tallas, [talla]: parseStock(value) } } : slot
+      coloresCustom: prev.coloresCustom.map((slot) =>
+        slot.id === colorId ? { ...slot, tallas: { ...slot.tallas, [talla]: parseStock(value) } } : slot
       ),
+    }))
+  }
+
+  const addCustomColor = () => {
+    setForm((prev) => ({
+      ...prev,
+      usarColores: true,
+      coloresCustom: [...prev.coloresCustom, newCustomColor(prev.tipo_talla)],
+    }))
+  }
+
+  const removeCustomColor = (colorId) => {
+    setForm((prev) => ({
+      ...prev,
+      coloresCustom: prev.coloresCustom.filter((slot) => slot.id !== colorId),
     }))
   }
 
@@ -388,7 +408,7 @@ const ProductoForm = () => {
         .filter((c) => c.imagenes.length > 0)
 
       const custom = form.coloresCustom
-        .filter((c) => c.activo && c.label.trim().length > 0 && c.imagenes.length > 0)
+        .filter((c) => c.label.trim().length > 0 && c.imagenes.length > 0)
         .map((c) => ({
           id: c.id,
           label: c.label.trim(),
@@ -440,7 +460,7 @@ const ProductoForm = () => {
     const fijos = COLORES_DISPONIBLES
       .filter((c) => form.colores[c.id]?.activo)
       .map((c) => form.colores[c.id]?.tallas)
-    const custom = form.coloresCustom.filter((c) => c.activo).map((c) => c.tallas)
+    const custom = form.coloresCustom.map((c) => c.tallas)
     return [...fijos, ...custom].reduce((sum, t) => sum + (Number(t?.[talla]) || 0), 0)
   }
 
@@ -893,7 +913,7 @@ const ProductoForm = () => {
                 ))}
 
                 {Object.values(form.colores).every((v) => !v?.activo) &&
-                  form.coloresCustom.every((c) => !c.activo) && (
+                  form.coloresCustom.length === 0 && (
                   <p
                     className="font-sans text-[var(--color-muted)]"
                     style={{ fontSize: '0.78rem' }}
@@ -919,29 +939,27 @@ const ProductoForm = () => {
                     Colores personalizados
                   </p>
 
-                  {form.coloresCustom.map((slot, idx) => (
+                  {form.coloresCustom.map((slot) => (
                     <div key={slot.id} className="flex flex-col" style={{ gap: '0.75rem' }}>
-                      {/* Slot header: toggle + name + picker */}
+                      {/* Slot header: remove + name + picker */}
                       <div className="flex flex-wrap items-center" style={{ gap: '0.65rem' }}>
-                        {/* Active toggle */}
+                        {/* Remove */}
                         <button
                           type="button"
-                          onClick={() => updateCustomSlot(idx, 'activo', !slot.activo)}
+                          onClick={() => removeCustomColor(slot.id)}
+                          aria-label={`Quitar color ${slot.label || 'sin nombre'}`}
                           className="font-sans transition-colors"
                           style={{
                             fontSize: '0.65rem',
                             letterSpacing: '0.2em',
                             textTransform: 'uppercase',
                             padding: '0.5rem 0.75rem',
-                            border: slot.activo
-                              ? '1px solid var(--color-accent)'
-                              : '1px solid var(--color-surface)',
-                            backgroundColor: slot.activo ? 'var(--color-accent)' : 'transparent',
-                            color: slot.activo ? 'var(--color-paper)' : 'var(--color-muted)',
+                            border: '1px solid var(--color-surface)',
+                            color: 'var(--color-muted)',
                             flexShrink: 0,
                           }}
                         >
-                          {slot.activo ? 'Activo' : 'Inactivo'}
+                          ✕ Quitar
                         </button>
 
                         {/* Color swatch + picker */}
@@ -960,7 +978,7 @@ const ProductoForm = () => {
                           <input
                             type="color"
                             value={slot.hex}
-                            onChange={(e) => updateCustomSlot(idx, 'hex', e.target.value)}
+                            onChange={(e) => updateCustomSlot(slot.id, 'hex', e.target.value)}
                             title="Elegir color"
                             style={{
                               width: '1.4rem',
@@ -981,7 +999,7 @@ const ProductoForm = () => {
                         <input
                           type="text"
                           value={slot.label}
-                          onChange={(e) => updateCustomSlot(idx, 'label', e.target.value)}
+                          onChange={(e) => updateCustomSlot(slot.id, 'label', e.target.value)}
                           placeholder={`Ej: Verde agua, Rosa empolvado…`}
                           className="bg-[var(--color-paper)] font-sans text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
                           style={{
@@ -1002,8 +1020,8 @@ const ProductoForm = () => {
                         </span>
                       </div>
 
-                      {/* Image uploader — only when slot is active and has a name */}
-                      {slot.activo && slot.label.trim().length > 0 && (
+                      {/* Image uploader — only once it has a name */}
+                      {slot.label.trim().length > 0 && (
                         <div
                           className="bg-[var(--color-base)]"
                           style={{
@@ -1035,15 +1053,15 @@ const ProductoForm = () => {
                           </div>
                           <ImageUploader
                             value={slot.imagenes}
-                            onChange={(next) => updateCustomSlotImagenes(idx, next)}
+                            onChange={(next) => updateCustomSlotImagenes(slot.id, next)}
                           />
                           <div style={{ marginTop: '1rem' }}>
                             <Field label="Código de barras de este color">
                               <BarcodeInput
                                 value={slot.barcode ?? ''}
-                                onChange={(v) => updateCustomSlot(idx, 'barcode', v)}
-                                onGenerate={() => generarBarcodeCustom(idx)}
-                                generating={generandoBarcode === `custom-${idx}`}
+                                onChange={(v) => updateCustomSlot(slot.id, 'barcode', v)}
+                                onGenerate={() => generarBarcodeCustom(slot.id)}
+                                generating={generandoBarcode === slot.id}
                               />
                             </Field>
                           </div>
@@ -1065,7 +1083,7 @@ const ProductoForm = () => {
                                     min="0"
                                     step="1"
                                     value={slot.tallas?.[talla] ?? 0}
-                                    onChange={(e) => updateCustomSlotTalla(idx, talla, e.target.value)}
+                                    onChange={(e) => updateCustomSlotTalla(slot.id, talla, e.target.value)}
                                     className="w-full bg-[var(--color-paper)] font-serif text-[var(--color-ink)] text-center outline-none focus:border-[var(--color-accent)]"
                                     style={{
                                       border: '1px solid var(--color-surface)',
@@ -1081,7 +1099,7 @@ const ProductoForm = () => {
                         </div>
                       )}
 
-                      {slot.activo && slot.label.trim().length === 0 && (
+                      {slot.label.trim().length === 0 && (
                         <p
                           className="font-sans text-[var(--color-muted)]"
                           style={{ fontSize: '0.75rem', marginLeft: '0.25rem' }}
@@ -1091,6 +1109,23 @@ const ProductoForm = () => {
                       )}
                     </div>
                   ))}
+
+                  <button
+                    type="button"
+                    onClick={addCustomColor}
+                    className="font-sans transition-colors hover:bg-[var(--color-base)]"
+                    style={{
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.15em',
+                      textTransform: 'uppercase',
+                      padding: '0.65rem 1rem',
+                      border: '1px dashed var(--color-surface)',
+                      color: 'var(--color-muted)',
+                      alignSelf: 'flex-start',
+                    }}
+                  >
+                    + Agregar color
+                  </button>
                 </div>
               </div>
             )}
