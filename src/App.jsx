@@ -22,11 +22,15 @@ const Login = lazy(() => import('@/pages/admin/Login'))
 const AdminLayout = lazy(() =>
   import('@/components/admin/AdminLayout').then((m) => ({ default: m.AdminLayout }))
 )
+const Dashboard = lazy(() => import('@/pages/admin/Dashboard'))
 const ProductosList = lazy(() => import('@/pages/admin/ProductosList'))
 const ProductoForm = lazy(() => import('@/pages/admin/ProductoForm'))
 const HeroSettings = lazy(() => import('@/pages/admin/HeroSettings'))
 const Categorias = lazy(() => import('@/pages/admin/Categorias'))
 const Envios = lazy(() => import('@/pages/admin/Envios'))
+const VentaFisica = lazy(() => import('@/pages/admin/VentaFisica'))
+const Pedidos = lazy(() => import('@/pages/admin/Pedidos'))
+const PedidoDetail = lazy(() => import('@/pages/admin/PedidoDetail'))
 
 gsap.registerPlugin(useGSAP)
 
@@ -85,12 +89,16 @@ const App = () => (
             </ProtectedRoute>
           }
         >
-          <Route index element={<ProductosList />} />
+          <Route index element={<Dashboard />} />
+          <Route path="productos" element={<ProductosList />} />
           <Route path="productos/nuevo" element={<ProductoForm />} />
           <Route path="productos/:id" element={<ProductoForm />} />
           <Route path="hero" element={<HeroSettings />} />
           <Route path="categorias" element={<Categorias />} />
           <Route path="envios" element={<Envios />} />
+          <Route path="venta-fisica" element={<VentaFisica />} />
+          <Route path="pedidos" element={<Pedidos />} />
+          <Route path="pedidos/:id" element={<PedidoDetail />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

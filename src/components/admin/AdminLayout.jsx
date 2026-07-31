@@ -3,12 +3,18 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
-  { to: '/admin', label: 'Productos', end: true },
+  { to: '/admin', label: 'Dashboard', end: true },
+  { to: '/admin/productos', label: 'Productos', end: true },
   { to: '/admin/productos/nuevo', label: 'Nuevo producto', end: false },
+  { to: '/admin/venta-fisica', label: 'Venta física', end: true },
+  { to: '/admin/pedidos', label: 'Pedidos', end: false },
   { to: '/admin/hero', label: 'Hero', end: true },
   { to: '/admin/categorias', label: 'Categorías', end: true },
   { to: '/admin/envios', label: 'Envíos', end: true },
 ]
+
+const SIDEBAR_COLLAPSED_KEY = 'stylo019-admin-sidebar-collapsed'
+const SIDEBAR_WIDTH = '18rem'
 
 export const AdminLayout = () => {
   const { user, signOut } = useAuth()
@@ -16,10 +22,36 @@ export const AdminLayout = () => {
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // Sidebar de escritorio colapsable — antes era `hidden md:flex` fijo,
+  // sin forma de cerrarlo en pantallas >=768px, robándole espacio
+  // permanente al contenido del dashboard. Colapsado por defecto
+  // (preferencia del dueño), se recuerda entre visitas.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(SIDEBAR_COLLAPSED_KEY) : null
+    return stored === null ? true : stored === 'true'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed))
+  }, [sidebarCollapsed])
+
   // Close drawer on route change
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname])
+
+  // Bloquear el scroll de fondo mientras el drawer móvil está abierto —
+  // sin esto, en páginas largas (como el nuevo Dashboard) el contenido
+  // de atrás se sigue desplazando por debajo del overlay fijo, dando la
+  // sensación de un menú "pegado" que no se cierra ni se puede recorrer.
+  useEffect(() => {
+    if (!menuOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [menuOpen])
 
   const handleSignOut = async () => {
     await signOut()
@@ -31,10 +63,37 @@ export const AdminLayout = () => {
       className="flex min-h-screen bg-[var(--color-base)] text-[var(--color-ink)]"
       style={{ fontFamily: 'var(--font-sans)' }}
     >
-      {/* Sidebar — desktop only */}
+      {/* Toggle del sidebar de escritorio — vive fuera del <aside> para
+          seguir siendo alcanzable incluso cuando este colapsa a ancho 0. */}
+      <button
+        type="button"
+        onClick={() => setSidebarCollapsed((v) => !v)}
+        aria-label={sidebarCollapsed ? 'Abrir menú' : 'Colapsar menú'}
+        className="hidden items-center justify-center bg-[var(--color-paper)] text-[var(--color-muted)] md:flex"
+        style={{
+          position: 'fixed',
+          top: '1.5rem',
+          left: sidebarCollapsed ? '0.75rem' : `calc(${SIDEBAR_WIDTH} - 0.75rem)`,
+          zIndex: 50,
+          width: '2rem',
+          height: '2rem',
+          border: '1px solid var(--color-surface)',
+          fontSize: '1rem',
+          transition: 'left 280ms ease',
+        }}
+      >
+        {sidebarCollapsed ? '›' : '‹'}
+      </button>
+
+      {/* Sidebar — desktop only, colapsable */}
       <aside
         className="sticky top-0 hidden h-screen flex-col border-r border-[var(--color-surface)] bg-[var(--color-paper)] md:flex"
-        style={{ width: '18rem', padding: '2.5rem 1.75rem' }}
+        style={{
+          width: sidebarCollapsed ? '0rem' : SIDEBAR_WIDTH,
+          padding: sidebarCollapsed ? '2.5rem 0' : '2.5rem 1.75rem',
+          overflow: 'hidden',
+          transition: 'width 280ms ease, padding 280ms ease',
+        }}
       >
         <div className="mb-14">
           <span
@@ -191,6 +250,7 @@ export const AdminLayout = () => {
         style={{
           width: '17rem',
           padding: '2rem 1.5rem',
+          overflowY: 'auto',
           transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
         }}
       >

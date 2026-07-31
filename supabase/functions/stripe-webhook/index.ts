@@ -1,10 +1,16 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import Stripe from "npm:stripe@13.3.0"
+import { createClient } from "npm:@supabase/supabase-js@2"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2023-10-16",
   httpClient: Stripe.createFetchHttpClient(),
 })
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+)
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!
 const WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET")!
@@ -46,9 +52,20 @@ serve(async (req) => {
   const items = fullSession.line_items?.data ?? []
   const customerEmail = fullSession.customer_details?.email ?? "—"
   const customerName = fullSession.customer_details?.name ?? "—"
+  const customerPhone = fullSession.customer_details?.phone ?? null
   const total = ((fullSession.amount_total ?? 0) / 100).toFixed(2)
 
   const shipping = fullSession.shipping_details
+  const shippingAddressLine = shipping?.address
+    ? [
+        shipping.address.line1,
+        shipping.address.line2,
+        `${shipping.address.postal_code ?? ""} ${shipping.address.city ?? ""}`.trim(),
+        shipping.address.state ?? "",
+        shipping.address.country ?? "",
+      ].filter(Boolean).join(", ")
+    : null
+
   const shippingAddress = shipping?.address
     ? [
         shipping.name ?? customerName,
@@ -64,6 +81,48 @@ serve(async (req) => {
   const shippingCost = fullSession.shipping_cost?.amount_total != null
     ? ((fullSession.shipping_cost.amount_total) / 100).toFixed(2)
     : null
+
+  // Create the real order + decrement stock — the moment that matters,
+  // since payment is now confirmed. Staged cart lives in checkout_drafts,
+  // keyed by the draft_id this same session set as metadata at creation
+  // (see create-checkout-session). Never blocks the customer email below
+  // if it fails — that's logged and left for manual follow-up, the
+  // payment itself already succeeded regardless.
+  const draftId = fullSession.metadata?.draft_id
+  let ventaId: string | null = null
+
+  if (draftId) {
+    const { data: draft } = await supabase
+      .from("checkout_drafts")
+      .select("id, items, consumed_at")
+      .eq("id", draftId)
+      .maybeSingle()
+
+    if (draft && !draft.consumed_at) {
+      const { data: venta, error: ventaError } = await supabase.rpc("crear_venta_web", {
+        p_items: draft.items,
+        p_cliente_nombre: customerName,
+        p_cliente_email: customerEmail,
+        p_cliente_telefono: customerPhone,
+        p_cliente_direccion: shippingAddressLine,
+        p_stripe_session_id: session.id,
+      })
+
+      if (ventaError) {
+        console.error("crear_venta_web error:", ventaError)
+      } else {
+        const created = Array.isArray(venta) ? venta[0] : venta
+        ventaId = created?.venta_id ?? null
+        await supabase.from("checkout_drafts").update({ consumed_at: new Date().toISOString() }).eq("id", draftId)
+
+        if (ventaId) {
+          supabase.functions.invoke("odoo-sync", { body: { venta_id: ventaId } }).catch(() => {})
+        }
+      }
+    }
+  } else {
+    console.error("stripe-webhook: session has no metadata.draft_id, cannot create order", session.id)
+  }
 
   // Build items HTML for the email
   const itemsHtml = items
@@ -127,6 +186,18 @@ serve(async (req) => {
               <a href="mailto:${customerEmail}" style="color:#0a0a0a;">${customerEmail}</a>
             </p>
           </div>
+
+          ${ventaId ? `
+          <div style="background:#f5f0ea;padding:16px 20px;margin-bottom:16px;">
+            <p style="margin:0;font-size:12px;color:#555;font-family:Inter,sans-serif;">
+              Pedido registrado en el admin — gestionar estado en <strong>/admin/pedidos</strong>.
+            </p>
+          </div>
+          ` : `
+          <div style="background:#fff3cd;padding:12px 20px;margin-bottom:16px;border-left:3px solid #f0a500;">
+            <p style="margin:0;font-size:12px;color:#7a5800;font-family:Inter,sans-serif;">No se pudo registrar el pedido en el admin automáticamente — revisar manualmente (stock no descontado).</p>
+          </div>
+          `}
 
           ${shippingAddress ? `
           <div style="background:#f5f0ea;padding:16px 20px;margin-bottom:16px;">
