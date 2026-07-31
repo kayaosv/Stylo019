@@ -340,16 +340,16 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 dash-section" style={{ gap: '1.25rem' }}>
         <div style={sectionStyle}>
           <h2 style={sectionTitleStyle}>Por categoría (cantidad)</h2>
-          <div className="flex flex-col" style={{ ...scrollBoxStyle, gap: '0.65rem' }}>
+          <div className="flex flex-col" style={{ ...scrollBoxStyle, gap: '0.6rem' }}>
             {porCategoria.map((c) => (
-              <div key={c.id} className="flex items-center" style={{ gap: '0.75rem' }}>
-                <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.75rem', width: '7rem', flexShrink: 0 }}>
+              <div key={c.id} className="flex items-center" style={{ gap: '0.6rem' }}>
+                <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.75rem', width: '6rem', flexShrink: 0 }}>
                   {c.nombre}
                 </span>
-                <div className="flex-1" style={{ height: '0.4rem', background: 'var(--color-base)' }}>
+                <div style={{ width: '6rem', height: '0.4rem', background: 'var(--color-base)', flexShrink: 0 }}>
                   <div style={{ width: `${(c.count / maxCategoria) * 100}%`, height: '100%', background: 'var(--color-accent)' }} />
                 </div>
-                <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.75rem', width: '1.5rem', textAlign: 'right' }}>
+                <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.75rem' }}>
                   {c.count}
                 </span>
               </div>
@@ -412,11 +412,11 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 dash-section" style={{ gap: '1.25rem' }}>
         <div style={sectionStyle}>
           <h2 style={sectionTitleStyle}>Pedidos por estado</h2>
-          <div className="flex flex-col" style={{ gap: '0.55rem' }}>
+          <div className="flex flex-col" style={{ gap: '0.55rem', maxWidth: '16rem' }}>
             {VENTA_ESTADOS.map((s) => (
-              <div key={s} className="flex items-center justify-between">
-                <span className="flex items-center font-sans text-[var(--color-muted)]" style={{ gap: '0.4rem', fontSize: '0.76rem' }}>
-                  <i style={{ width: '0.5rem', height: '0.5rem', borderRadius: '9999px', background: ESTADO_META[s].color, display: 'inline-block' }} />
+              <div key={s} className="flex items-center" style={{ gap: '0.6rem' }}>
+                <span className="flex items-center font-sans text-[var(--color-muted)]" style={{ gap: '0.4rem', fontSize: '0.76rem', width: '8.5rem', flexShrink: 0 }}>
+                  <i style={{ width: '0.5rem', height: '0.5rem', borderRadius: '9999px', background: ESTADO_META[s].color, display: 'inline-block', flexShrink: 0 }} />
                   {ESTADO_META[s].label}
                 </span>
                 <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.76rem' }}>
@@ -429,15 +429,15 @@ const Dashboard = () => {
 
         <div style={sectionStyle}>
           <h2 style={sectionTitleStyle}>Métodos de pago (tienda)</h2>
-          <div className="flex flex-col" style={{ gap: '0.55rem' }}>
-            <div className="flex items-center justify-between">
-              <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.76rem' }}>Efectivo</span>
+          <div className="flex flex-col" style={{ gap: '0.55rem', maxWidth: '16rem' }}>
+            <div className="flex items-center" style={{ gap: '0.6rem' }}>
+              <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.76rem', width: '8.5rem', flexShrink: 0 }}>Efectivo</span>
               <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.76rem' }}>
                 {porMetodoPago.efectivo} ({pct(porMetodoPago.efectivo, totalMetodoPago)})
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.76rem' }}>Tarjeta</span>
+            <div className="flex items-center" style={{ gap: '0.6rem' }}>
+              <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.76rem', width: '8.5rem', flexShrink: 0 }}>Tarjeta</span>
               <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.76rem' }}>
                 {porMetodoPago.tarjeta} ({pct(porMetodoPago.tarjeta, totalMetodoPago)})
               </span>

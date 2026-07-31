@@ -24,6 +24,19 @@ export const AdminLayout = () => {
     setMenuOpen(false)
   }, [location.pathname])
 
+  // Bloquear el scroll de fondo mientras el drawer móvil está abierto —
+  // sin esto, en páginas largas (como el nuevo Dashboard) el contenido
+  // de atrás se sigue desplazando por debajo del overlay fijo, dando la
+  // sensación de un menú "pegado" que no se cierra ni se puede recorrer.
+  useEffect(() => {
+    if (!menuOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [menuOpen])
+
   const handleSignOut = async () => {
     await signOut()
     navigate('/admin/login', { replace: true })
@@ -194,6 +207,7 @@ export const AdminLayout = () => {
         style={{
           width: '17rem',
           padding: '2rem 1.5rem',
+          overflowY: 'auto',
           transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)',
         }}
       >
