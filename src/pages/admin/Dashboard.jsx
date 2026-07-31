@@ -7,6 +7,10 @@ import { fetchCategorias } from '@/services/categorias'
 import { useAdminPedidos, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
 
 const CANAL_LABEL = { web: 'Web · Stripe', tienda: 'Tienda física' }
+// tienda usa el azul de marca (--color-accent); web usa un cálido de
+// contraste en vez de --color-accent-ink -- los dos azules del tema se
+// distinguían mal entre sí en el gráfico y en la leyenda.
+const CANAL_COLOR = { tienda: 'var(--color-accent)', web: '#D97706' }
 const LOW_STOCK_THRESHOLD = 5
 const HISTORY_DAYS = 14
 const LOW_STOCK_VISIBLE = 5
@@ -84,7 +88,7 @@ const SalesLineChart = ({ days }) => {
           <polyline
             points={toPoints((d) => d.tienda)}
             fill="none"
-            stroke="var(--color-accent)"
+            stroke={CANAL_COLOR.tienda}
             strokeWidth="2"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
@@ -92,7 +96,7 @@ const SalesLineChart = ({ days }) => {
           <polyline
             points={toPoints((d) => d.web)}
             fill="none"
-            stroke="var(--color-accent-ink)"
+            stroke={CANAL_COLOR.web}
             strokeWidth="2"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
@@ -285,11 +289,11 @@ const Dashboard = () => {
           )}
           <div className="flex" style={{ gap: '1.25rem', marginTop: '1rem' }}>
             <span className="flex items-center font-sans text-[var(--color-muted)]" style={{ gap: '0.4rem', fontSize: '0.72rem' }}>
-              <i style={{ width: '0.55rem', height: '0.55rem', borderRadius: '9999px', background: 'var(--color-accent)', display: 'inline-block' }} />
+              <i style={{ width: '0.55rem', height: '0.55rem', borderRadius: '9999px', background: CANAL_COLOR.tienda, display: 'inline-block' }} />
               {CANAL_LABEL.tienda}
             </span>
             <span className="flex items-center font-sans text-[var(--color-muted)]" style={{ gap: '0.4rem', fontSize: '0.72rem' }}>
-              <i style={{ width: '0.55rem', height: '0.55rem', borderRadius: '9999px', background: 'var(--color-accent-ink)', display: 'inline-block' }} />
+              <i style={{ width: '0.55rem', height: '0.55rem', borderRadius: '9999px', background: CANAL_COLOR.web, display: 'inline-block' }} />
               {CANAL_LABEL.web}
             </span>
           </div>

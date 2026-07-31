@@ -16,6 +16,29 @@ const hasBarcodeDetector = () =>
 const tallasConStock = (tallas = {}) =>
   Object.entries(tallas ?? {}).filter(([, stock]) => Number(stock) > 0)
 
+// Foto a mostrar en cada paso de la venta — la del color elegido si la
+// tiene, si no la base del producto. Sin esto, quien vende no tenía
+// forma de confirmar visualmente el artículo (ni en la búsqueda, ni al
+// elegir color/talla, ni en el carrito).
+const resolveImagen = (producto, colorId, colores = []) => {
+  if (colorId) {
+    const color = colores.find((c) => c.id === colorId)
+    if (color?.imagenes?.[0]) return color.imagenes[0]
+  }
+  return producto?.imagenes?.[0] ?? null
+}
+
+const Thumb = ({ src, size = '2.4rem' }) =>
+  src ? (
+    <img
+      src={src}
+      alt=""
+      style={{ width: size, height: size, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--color-surface)' }}
+    />
+  ) : (
+    <div style={{ width: size, height: size, background: 'var(--color-base)', flexShrink: 0, border: '1px solid var(--color-surface)' }} />
+  )
+
 const VentaFisica = () => {
   const scanRef = useRef(null)
   const inputRef = useRef(null)
@@ -143,13 +166,16 @@ const VentaFisica = () => {
       precio: hit.precio,
       precio_oferta: hit.precio_oferta,
       precios_talla: hit.precios_talla,
+      imagenes: hit.imagenes,
     }
+    const colores = normalizeColores(hit.colores)
 
     // A color-specific barcode with its own stock map goes straight to size
     // picking; a base-product barcode (or a color barcode whose color has
     // no per-color stock split yet) falls back to the product's own tallas.
     const tallas = hit.color_tallas ?? hit.tallas ?? {}
-    setSizeStep({ producto, colorId: hit.color_id, colorLabel: hit.color_label, tallas })
+    const imagen = resolveImagen(producto, hit.color_id, colores)
+    setSizeStep({ producto, colorId: hit.color_id, colorLabel: hit.color_label, tallas, imagen })
     setCodigo('')
   }, [])
 
@@ -172,7 +198,7 @@ const VentaFisica = () => {
     const t = setTimeout(async () => {
       const { data } = await supabase
         .from('productos')
-        .select('id, nombre, precio, precio_oferta, precios_talla, tallas, colores, activo')
+        .select('id, nombre, precio, precio_oferta, precios_talla, tallas, colores, activo, imagenes')
         .eq('activo', true)
         .ilike('nombre', `%${term}%`)
         .limit(8)
@@ -195,6 +221,7 @@ const VentaFisica = () => {
       precio: row.precio,
       precio_oferta: row.precio_oferta,
       precios_talla: row.precios_talla,
+      imagenes: row.imagenes,
     }
     const colores = normalizeColores(row.colores)
     setBusqueda('')
@@ -202,7 +229,7 @@ const VentaFisica = () => {
     if (colores.length > 0) {
       setColorStep({ producto, colores, tallasBase: row.tallas ?? {} })
     } else {
-      setSizeStep({ producto, colorId: null, colorLabel: null, tallas: row.tallas ?? {} })
+      setSizeStep({ producto, colorId: null, colorLabel: null, tallas: row.tallas ?? {}, imagen: resolveImagen(producto, null) })
     }
   }
 
@@ -212,12 +239,13 @@ const VentaFisica = () => {
       colorId: color.id,
       colorLabel: color.label,
       tallas: color.tallas ?? colorStep.tallasBase,
+      imagen: resolveImagen(colorStep.producto, color.id, colorStep.colores),
     })
     setColorStep(null)
   }
 
   const elegirTalla = (talla) => {
-    const { producto, colorId, colorLabel } = sizeStep
+    const { producto, colorId, colorLabel, imagen } = sizeStep
     const precioUnitario = getPrecioEfectivo(producto, talla)
     const key = `${producto.id}:${colorId ?? 'base'}:${talla}`
 
@@ -228,7 +256,7 @@ const VentaFisica = () => {
       }
       return [...prev, {
         key, productoId: producto.id, productoNombre: producto.nombre,
-        colorId, colorLabel, talla, cantidad: 1, precioUnitario,
+        colorId, colorLabel, talla, cantidad: 1, precioUnitario, imagen,
       }]
     })
     setSizeStep(null)
@@ -374,9 +402,10 @@ const VentaFisica = () => {
                     key={r.id}
                     type="button"
                     onClick={() => elegirProducto(r)}
-                    className="text-left font-sans transition-colors hover:bg-[var(--color-base)]"
-                    style={{ padding: '0.65rem 0.85rem', border: '1px solid var(--color-surface)', fontSize: '0.85rem' }}
+                    className="flex items-center text-left font-sans transition-colors hover:bg-[var(--color-base)]"
+                    style={{ gap: '0.65rem', padding: '0.5rem 0.85rem', border: '1px solid var(--color-surface)', fontSize: '0.85rem' }}
                   >
+                    <Thumb src={resolveImagen(r, null)} size="2rem" />
                     {r.nombre}
                   </button>
                 ))}
@@ -395,11 +424,14 @@ const VentaFisica = () => {
             <div className="flex flex-col" style={{ gap: '0.75rem' }}>
               {cart.map((l) => (
                 <div key={l.key} className="flex items-center justify-between" style={{ gap: '0.75rem', borderBottom: '1px solid var(--color-surface)', paddingBottom: '0.75rem' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <p className="font-serif text-[var(--color-ink)]" style={{ fontSize: '0.95rem' }}>{l.productoNombre}</p>
-                    <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.75rem' }}>
-                      {[l.colorLabel, `Talla ${l.talla}`].filter(Boolean).join(' — ')} · {l.precioUnitario.toFixed(2)} € / u
-                    </p>
+                  <div className="flex items-center" style={{ gap: '0.65rem', minWidth: 0 }}>
+                    <Thumb src={l.imagen} size="2.5rem" />
+                    <div style={{ minWidth: 0 }}>
+                      <p className="font-serif text-[var(--color-ink)]" style={{ fontSize: '0.95rem' }}>{l.productoNombre}</p>
+                      <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.75rem' }}>
+                        {[l.colorLabel, `Talla ${l.talla}`].filter(Boolean).join(' — ')} · {l.precioUnitario.toFixed(2)} € / u
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center" style={{ gap: '0.5rem', flexShrink: 0 }}>
                     <button type="button" onClick={() => cambiarCantidad(l.key, -1)} style={{ padding: '0.25rem 0.6rem', border: '1px solid var(--color-surface)' }}>−</button>
@@ -462,9 +494,13 @@ const VentaFisica = () => {
                 type="button"
                 onClick={() => elegirColor(c)}
                 className="flex items-center font-sans"
-                style={{ gap: '0.5rem', padding: '0.6rem 1rem', border: '1px solid var(--color-surface)' }}
+                style={{ gap: '0.5rem', padding: '0.5rem 0.85rem 0.5rem 0.5rem', border: '1px solid var(--color-surface)' }}
               >
-                <span style={{ width: '0.9rem', height: '0.9rem', borderRadius: '9999px', background: c.hex, border: c.border ? '1px solid rgba(0,0,0,0.2)' : 'none', display: 'inline-block' }} />
+                {c.imagenes?.[0] ? (
+                  <Thumb src={c.imagenes[0]} size="2.4rem" />
+                ) : (
+                  <span style={{ width: '0.9rem', height: '0.9rem', borderRadius: '9999px', background: c.hex, border: c.border ? '1px solid rgba(0,0,0,0.2)' : 'none', display: 'inline-block' }} />
+                )}
                 {c.label}
               </button>
             ))}
@@ -474,6 +510,13 @@ const VentaFisica = () => {
 
       {sizeStep && (
         <Modal onClose={() => setSizeStep(null)} title={[sizeStep.producto.nombre, sizeStep.colorLabel].filter(Boolean).join(' — ')}>
+          {sizeStep.imagen && (
+            <img
+              src={sizeStep.imagen}
+              alt=""
+              style={{ width: '100%', maxHeight: '11rem', objectFit: 'cover', marginBottom: '1.1rem', border: '1px solid var(--color-surface)' }}
+            />
+          )}
           {tallasConStock(sizeStep.tallas).length === 0 ? (
             <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.85rem' }}>Sin stock disponible en ninguna talla.</p>
           ) : (
