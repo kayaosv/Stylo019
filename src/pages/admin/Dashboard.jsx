@@ -25,23 +25,27 @@ const formatDateShort = (iso) =>
   new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
 
 // Botón de acción de header — mismo lenguaje visual que los filtros de
-// Pedidos.jsx (rectángulo plano, borde, texto uppercase tracked, hover
-// rellena de sólido) en vez de inventar una píldora redondeada nueva.
-const HeaderAction = ({ to, label, primary }) => (
+// Pedidos.jsx (borde, texto uppercase tracked, hover rellena de sólido)
+// con esquinas redondeadas + emoji para que se lean como botón, no
+// como texto plano con un borde.
+const HeaderAction = ({ to, icon, label, primary }) => (
   <Link
     to={to}
-    className="font-sans transition-colors"
+    className="flex items-center font-sans transition-colors"
     style={{
+      gap: '0.4rem',
       fontSize: '0.72rem',
       letterSpacing: '0.12em',
       textTransform: 'uppercase',
       padding: '0.65rem 1.1rem',
       whiteSpace: 'nowrap',
+      borderRadius: '0.5rem',
       border: primary ? '1px solid var(--color-accent)' : '1px solid var(--color-surface)',
       backgroundColor: primary ? 'var(--color-accent)' : 'transparent',
       color: primary ? '#fff' : 'var(--color-muted)',
     }}
   >
+    <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>{icon}</span>
     {label}
   </Link>
 )
@@ -259,9 +263,9 @@ const Dashboard = () => {
           </h1>
         </div>
         <div className="flex flex-wrap items-center" style={{ gap: '0.6rem' }}>
-          <HeaderAction to="/admin/pedidos" label="Pedidos" />
-          <HeaderAction to="/admin/venta-fisica" label="Venta física / TPV" primary />
-          <HeaderAction to="/admin/productos/nuevo" label="+ Nuevo producto" />
+          <HeaderAction to="/admin/pedidos" icon="📋" label="Pedidos" />
+          <HeaderAction to="/admin/venta-fisica" icon="💳" label="Venta física / TPV" primary />
+          <HeaderAction to="/admin/productos/nuevo" icon="🏷️" label="Nuevo producto" />
         </div>
       </div>
 
