@@ -335,10 +335,13 @@ const Dashboard = () => {
         <StatCard label="Sin stock" value={stats.sinStock} warn={stats.sinStock > 0} />
       </div>
 
-      {/* Fila 3: por categoria + stock bajo */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 dash-section" style={{ gap: '1.25rem' }}>
-        <div style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Por categoría (cantidad)</h2>
+      {/* Fila 3: paneles compactos, cada uno del ancho de su contenido —
+          no una grilla de 2 columnas que estira cajas chicas a mitad
+          de pantalla. Se acomodan uno al lado del otro y saltan de
+          línea solos según el espacio disponible. */}
+      <div className="flex flex-wrap dash-section" style={{ gap: '1.25rem', alignItems: 'flex-start' }}>
+        <div style={{ ...sectionStyle, width: '18rem', flexShrink: 0 }}>
+          <h2 style={sectionTitleStyle}>Por categoría</h2>
           <div className="flex flex-col" style={{ ...scrollBoxStyle, gap: '0.6rem' }}>
             {porCategoria.map((c) => (
               <div key={c.id} className="flex items-center" style={{ gap: '0.6rem' }}>
@@ -356,7 +359,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div style={sectionStyle}>
+        <div style={{ ...sectionStyle, width: '20rem', flexShrink: 0 }}>
           <h2 style={sectionTitleStyle}>Stock bajo</h2>
           {lowStock.length === 0 ? (
             <p className="font-sans text-[var(--color-muted-soft)]" style={{ fontSize: '0.82rem' }}>
@@ -372,9 +375,12 @@ const Dashboard = () => {
                       key={p.id}
                       to={`/admin/productos/${p.id}`}
                       className="flex items-center justify-between"
-                      style={{ padding: '0.5rem 0.6rem', border: '1px solid var(--color-surface)' }}
+                      style={{ padding: '0.5rem 0.6rem', border: '1px solid var(--color-surface)', gap: '0.5rem' }}
                     >
-                      <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.78rem' }}>
+                      <span
+                        className="font-sans text-[var(--color-ink)]"
+                        style={{ fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
+                      >
                         {p.nombre}
                       </span>
                       <span
@@ -382,6 +388,7 @@ const Dashboard = () => {
                         style={{
                           fontSize: '0.68rem',
                           padding: '0.2rem 0.55rem',
+                          flexShrink: 0,
                           color: stock === 0 ? '#c0392b' : '#b7791f',
                           background: stock === 0 ? '#fdecea' : '#fdf3dc',
                         }}
@@ -405,16 +412,13 @@ const Dashboard = () => {
             </>
           )}
         </div>
-      </div>
 
-      {/* Fila 4: pedidos por estado + metodos de pago */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 dash-section" style={{ gap: '1.25rem' }}>
-        <div style={sectionStyle}>
+        <div style={{ ...sectionStyle, width: '16rem', flexShrink: 0 }}>
           <h2 style={sectionTitleStyle}>Pedidos por estado</h2>
-          <div className="flex flex-col" style={{ gap: '0.55rem', maxWidth: '16rem' }}>
+          <div className="flex flex-col" style={{ gap: '0.55rem' }}>
             {VENTA_ESTADOS.map((s) => (
-              <div key={s} className="flex items-center" style={{ gap: '0.6rem' }}>
-                <span className="flex items-center font-sans text-[var(--color-muted)]" style={{ gap: '0.4rem', fontSize: '0.76rem', width: '8.5rem', flexShrink: 0 }}>
+              <div key={s} className="flex items-center justify-between">
+                <span className="flex items-center font-sans text-[var(--color-muted)]" style={{ gap: '0.4rem', fontSize: '0.76rem' }}>
                   <i style={{ width: '0.5rem', height: '0.5rem', borderRadius: '9999px', background: ESTADO_META[s].color, display: 'inline-block', flexShrink: 0 }} />
                   {ESTADO_META[s].label}
                 </span>
@@ -426,17 +430,17 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Métodos de pago (tienda)</h2>
-          <div className="flex flex-col" style={{ gap: '0.55rem', maxWidth: '16rem' }}>
-            <div className="flex items-center" style={{ gap: '0.6rem' }}>
-              <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.76rem', width: '8.5rem', flexShrink: 0 }}>Efectivo</span>
+        <div style={{ ...sectionStyle, width: '12rem', flexShrink: 0 }}>
+          <h2 style={sectionTitleStyle}>Métodos de pago</h2>
+          <div className="flex flex-col" style={{ gap: '0.55rem' }}>
+            <div className="flex items-center justify-between">
+              <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.76rem' }}>Efectivo</span>
               <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.76rem' }}>
                 {porMetodoPago.efectivo} ({pct(porMetodoPago.efectivo, totalMetodoPago)})
               </span>
             </div>
-            <div className="flex items-center" style={{ gap: '0.6rem' }}>
-              <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.76rem', width: '8.5rem', flexShrink: 0 }}>Tarjeta</span>
+            <div className="flex items-center justify-between">
+              <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.76rem' }}>Tarjeta</span>
               <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.76rem' }}>
                 {porMetodoPago.tarjeta} ({pct(porMetodoPago.tarjeta, totalMetodoPago)})
               </span>
