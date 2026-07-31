@@ -328,12 +328,11 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Fila 2: totales compactos */}
-      <div className="grid grid-cols-2 md:grid-cols-4 dash-section" style={{ gap: '0.9rem' }}>
-        <StatCard label="Productos activos" value={stats.activos} />
+      {/* Fila 2: totales compactos (Total productos → Valor inventario → Sin stock) */}
+      <div className="grid grid-cols-3 dash-section" style={{ gap: '0.9rem' }}>
+        <StatCard label="Total productos" value={stats.activos} />
         <StatCard label="Valor inventario" value={eur(stats.valorInventario)} />
         <StatCard label="Sin stock" value={stats.sinStock} warn={stats.sinStock > 0} />
-        <StatCard label="Stock bajo" value={lowStock.length} warn={lowStock.length > 0} />
       </div>
 
       {/* Fila 3: por categoria + stock bajo */}
