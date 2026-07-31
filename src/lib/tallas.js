@@ -4,6 +4,7 @@ export const TALLA_SETS = {
   curvy_torso: ['2XL', '3XL', '4XL', '5XL'],
   calzado:     ['35', '36', '37', '38', '39', '40', '41'],
   pantalon:    ['34', '36', '38', '40', '42', '44'],
+  unica:       ['Única'],
 }
 
 // A product is sold out when every size has zero stock.
@@ -17,4 +18,5 @@ export const TIPO_TALLA_OPTIONS = [
   { value: 'curvy_torso', label: 'Curvy Torso (2XL–5XL)' },
   { value: 'calzado',     label: 'Calzado (35–41)' },
   { value: 'pantalon',    label: 'Pantalón (34–44)' },
+  { value: 'unica',       label: 'Talla única' },
 ]
