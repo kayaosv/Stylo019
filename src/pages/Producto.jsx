@@ -216,6 +216,7 @@ const Producto = () => {
           key={`${producto.id}-${colorSeleccionado ?? 'base'}`}
           imagenes={imagenesGaleria}
           nombre={producto.nombre}
+          agotado={estaAgotado(tallasActivas)}
         />
 
         {/* RIGHT — Info panel */}

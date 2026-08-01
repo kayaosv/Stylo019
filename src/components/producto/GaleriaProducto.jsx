@@ -7,7 +7,7 @@ gsap.registerPlugin(useGSAP)
 
 // Product image gallery with vertical thumbnail strip (desktop) and
 // horizontal scroll-snap strip (mobile). GSAP crossfade on image change.
-export const GaleriaProducto = ({ imagenes = [], nombre = '' }) => {
+export const GaleriaProducto = ({ imagenes = [], nombre = '', agotado = false }) => {
   const [activeIdx, setActiveIdx] = useState(0)
 
   const containerRef = useRef(null)
@@ -56,6 +56,29 @@ export const GaleriaProducto = ({ imagenes = [], nombre = '' }) => {
   }
 
   const fallback = imagenes.length > 0 ? imagenes[0] : ''
+
+  // Same visual treatment as the catalog card's sold-out banner, kept in
+  // sync with whichever color/product stock the caller resolved.
+  const bannerAgotado = agotado && (
+    <div
+      className="absolute left-0 right-0 z-30 flex items-center justify-center py-2.5 pointer-events-none"
+      style={{
+        top: '50%',
+        transform: 'translateY(-50%)',
+        background: 'rgba(10, 10, 10, 0.82)',
+      }}
+    >
+      <span
+        className="label-xs"
+        style={{
+          color: 'var(--color-base)',
+          letterSpacing: '0.22em',
+        }}
+      >
+        Agotado
+      </span>
+    </div>
+  )
 
   return (
     <div ref={containerRef}>
@@ -109,7 +132,12 @@ export const GaleriaProducto = ({ imagenes = [], nombre = '' }) => {
             fetchpriority="high"
             decoding="async"
             className="absolute inset-0 w-full h-full object-cover will-change-[opacity]"
+            style={{
+              opacity: agotado ? 0.45 : 1,
+              filter: agotado ? 'grayscale(0.6)' : 'none',
+            }}
           />
+          {bannerAgotado}
         </div>
       </div>
 
@@ -150,11 +178,16 @@ export const GaleriaProducto = ({ imagenes = [], nombre = '' }) => {
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
+                  opacity: agotado ? 0.45 : 1,
+                  filter: agotado ? 'grayscale(0.6)' : 'none',
                 }}
               />
             </div>
           ))}
         </div>
+
+        {/* Sold-out banner — sits above every slide, position is independent of scroll */}
+        {bannerAgotado}
 
         {/* Dot indicators for mobile (only when multiple images) */}
         {imagenes.length > 1 && (
