@@ -167,7 +167,7 @@ serve(async (req) => {
       }))
 
     const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
-      payment_method_types: ["card"],
+      payment_method_types: ["card", "bizum"],
       line_items,
       mode: "payment",
       success_url,
