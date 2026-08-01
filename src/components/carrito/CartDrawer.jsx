@@ -113,7 +113,10 @@ export const CartDrawer = () => {
       const url = await createCheckoutSession(items)
       window.location.href = url
     } catch (err) {
-      setStripeError('No se pudo iniciar el pago. Inténtalo de nuevo.')
+      // createCheckoutSession() ya extrae el motivo real del servidor
+      // (stock insuficiente, producto no disponible, etc.) cuando puede
+      // — solo cae al genérico si de verdad no hay un mensaje útil.
+      setStripeError(err.message || 'No se pudo iniciar el pago. Inténtalo de nuevo.')
       setPaying(false)
     }
   }

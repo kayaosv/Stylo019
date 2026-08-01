@@ -19,7 +19,20 @@ export const createCheckoutSession = async (items) => {
     },
   })
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    // supabase-js wraps any non-2xx Edge Function response in a generic
+    // FunctionsHttpError ("Edge Function returned a non-2xx status code")
+    // — the real reason (stock insuficiente, producto ya no disponible,
+    // etc.) is JSON in the raw response, only reachable via error.context.
+    let message = error.message
+    try {
+      const body = await error.context?.json()
+      if (body?.error) message = body.error
+    } catch {
+      // context wasn't JSON (network-level error) — keep the generic message
+    }
+    throw new Error(message)
+  }
   if (!data?.url) throw new Error('No se pudo crear la sesión de pago')
 
   return data.url
