@@ -44,12 +44,18 @@ export const ItemCarrito = ({ item }) => {
     )
   }
 
+  // stockDisponible is a snapshot taken when the item was added (see
+  // useCartStore.addItem) — undefined on cart lines persisted before this
+  // change, so those fall back to no cap rather than getting stuck.
+  const atMax = item.stockDisponible != null && item.cantidad >= item.stockDisponible
+
   const handleMinus = () => {
     bump(minusBtnRef)
     updateCantidad(item.id, item.talla, item.colorId ?? null, item.cantidad - 1)
   }
 
   const handlePlus = () => {
+    if (atMax) return
     bump(plusBtnRef)
     updateCantidad(item.id, item.talla, item.colorId ?? null, item.cantidad + 1)
   }
@@ -123,52 +129,63 @@ export const ItemCarrito = ({ item }) => {
         {/* Bottom row: quantity controls + subtotal */}
         <div className="flex items-end justify-between gap-3 mt-1">
           {/* Quantity stepper */}
-          <div className="flex items-center gap-3">
-            <button
-              ref={minusBtnRef}
-              type="button"
-              onClick={handleMinus}
-              aria-label="Disminuir cantidad"
-              className="flex items-center justify-center border transition-colors duration-200"
-              style={{
-                width: '1.75rem',
-                height: '1.75rem',
-                borderColor: 'var(--color-surface)',
-                color: 'var(--color-ink)',
-                willChange: 'transform',
-              }}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <button
+                ref={minusBtnRef}
+                type="button"
+                onClick={handleMinus}
+                aria-label="Disminuir cantidad"
+                className="flex items-center justify-center border transition-colors duration-200"
+                style={{
+                  width: '1.75rem',
+                  height: '1.75rem',
+                  borderColor: 'var(--color-surface)',
+                  color: 'var(--color-ink)',
+                  willChange: 'transform',
+                }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
 
-            <span
-              className="label-xs tabular-nums"
-              style={{ color: 'var(--color-ink)', minWidth: '1.5rem', textAlign: 'center' }}
-            >
-              {String(item.cantidad).padStart(2, '0')}
-            </span>
+              <span
+                className="label-xs tabular-nums"
+                style={{ color: 'var(--color-ink)', minWidth: '1.5rem', textAlign: 'center' }}
+              >
+                {String(item.cantidad).padStart(2, '0')}
+              </span>
 
-            <button
-              ref={plusBtnRef}
-              type="button"
-              onClick={handlePlus}
-              aria-label="Aumentar cantidad"
-              className="flex items-center justify-center border transition-colors duration-200"
-              style={{
-                width: '1.75rem',
-                height: '1.75rem',
-                borderColor: 'var(--color-accent)',
-                color: 'var(--color-accent)',
-                willChange: 'transform',
-              }}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
+              <button
+                ref={plusBtnRef}
+                type="button"
+                onClick={handlePlus}
+                disabled={atMax}
+                aria-label={atMax ? 'Sin más stock disponible' : 'Aumentar cantidad'}
+                className="flex items-center justify-center border transition-colors duration-200"
+                style={{
+                  width: '1.75rem',
+                  height: '1.75rem',
+                  borderColor: atMax ? 'var(--color-surface)' : 'var(--color-accent)',
+                  color: atMax ? 'var(--color-muted-soft)' : 'var(--color-accent)',
+                  opacity: atMax ? 0.5 : 1,
+                  cursor: atMax ? 'not-allowed' : 'pointer',
+                  willChange: 'transform',
+                }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
+            </div>
+
+            {atMax && (
+              <span className="label-xs" style={{ color: 'var(--color-muted-soft)', fontSize: '0.62rem' }}>
+                Última unidad disponible
+              </span>
+            )}
           </div>
 
           {/* Subtotal */}

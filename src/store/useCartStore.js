@@ -14,6 +14,12 @@ export const useCartStore = create(
       addItem: (product, talla, color = null) => {
         const items = get().items
         const colorId = color?.id ?? null
+        // Same fallback as tallasActivas in Producto.jsx: the color's own
+        // stock map if it has one, else the product's base tallas. Stored
+        // on the line so the quantity stepper can cap without needing a
+        // live refetch — a snapshot, not guaranteed fresh forever, but
+        // the checkout step re-validates against real stock regardless.
+        const stockDisponible = Number((color?.tallas ?? product.tallas ?? {})[talla]) || 0
         const existing = items.find(
           (i) => i.id === product.id && i.talla === talla && (i.colorId ?? null) === colorId
         )
@@ -21,7 +27,9 @@ export const useCartStore = create(
         if (existing) {
           set({
             items: items.map((i) =>
-              i === existing ? { ...i, cantidad: i.cantidad + 1 } : i
+              i === existing
+                ? { ...i, stockDisponible, cantidad: Math.max(1, Math.min(i.cantidad + 1, stockDisponible)) }
+                : i
             ),
           })
         } else {
@@ -36,6 +44,7 @@ export const useCartStore = create(
                 colorLabel: color?.label ?? null,
                 colorImagen: color?.imagenes?.[0] ?? null,
                 precioUnitario,
+                stockDisponible,
                 cantidad: 1,
               },
             ],
@@ -50,17 +59,20 @@ export const useCartStore = create(
           ),
         }),
 
+      // stockDisponible is only set on items added after this change —
+      // older persisted cart lines fall back to no cap (Infinity) rather
+      // than getting silently stuck, since we don't know their real stock.
       updateCantidad: (id, talla, colorId, cantidad) => {
         if (cantidad <= 0) {
           get().removeItem(id, talla, colorId)
           return
         }
         set({
-          items: get().items.map((i) =>
-            i.id === id && i.talla === talla && (i.colorId ?? null) === colorId
-              ? { ...i, cantidad }
-              : i
-          ),
+          items: get().items.map((i) => {
+            if (i.id !== id || i.talla !== talla || (i.colorId ?? null) !== colorId) return i
+            const max = i.stockDisponible ?? Infinity
+            return { ...i, cantidad: Math.min(cantidad, max) }
+          }),
         })
       },
 
