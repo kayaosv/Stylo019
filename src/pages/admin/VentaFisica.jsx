@@ -244,19 +244,31 @@ const VentaFisica = () => {
     setColorStep(null)
   }
 
+  // stockDisponible is a snapshot of that exact color+talla combination taken
+  // when the line is added/incremented here — same convention as the web
+  // cart's useCartStore.addItem, so both surfaces cap at the real per-variant
+  // stock instead of the product's aggregate. crear_venta_tpv re-validates
+  // against live stock at "Cobrar" regardless, so this is a UX guard (catch
+  // it while building the sale, not after quoting the customer a total),
+  // not the only safety net.
   const elegirTalla = (talla) => {
-    const { producto, colorId, colorLabel, imagen } = sizeStep
+    const { producto, colorId, colorLabel, imagen, tallas } = sizeStep
     const precioUnitario = getPrecioEfectivo(producto, talla)
     const key = `${producto.id}:${colorId ?? 'base'}:${talla}`
+    const stockDisponible = Number(tallas?.[talla]) || 0
 
     setCart((prev) => {
       const existing = prev.find((l) => l.key === key)
       if (existing) {
-        return prev.map((l) => (l.key === key ? { ...l, cantidad: l.cantidad + 1 } : l))
+        return prev.map((l) =>
+          l.key === key
+            ? { ...l, stockDisponible, cantidad: Math.max(1, Math.min(l.cantidad + 1, stockDisponible)) }
+            : l
+        )
       }
       return [...prev, {
         key, productoId: producto.id, productoNombre: producto.nombre,
-        colorId, colorLabel, talla, cantidad: 1, precioUnitario, imagen,
+        colorId, colorLabel, talla, cantidad: 1, precioUnitario, imagen, stockDisponible,
       }]
     })
     setSizeStep(null)
@@ -265,7 +277,11 @@ const VentaFisica = () => {
   const cambiarCantidad = (key, delta) => {
     setCart((prev) =>
       prev
-        .map((l) => (l.key === key ? { ...l, cantidad: Math.max(0, l.cantidad + delta) } : l))
+        .map((l) => {
+          if (l.key !== key) return l
+          const max = l.stockDisponible ?? Infinity
+          return { ...l, cantidad: Math.max(0, Math.min(l.cantidad + delta, max)) }
+        })
         .filter((l) => l.cantidad > 0)
     )
   }
@@ -422,28 +438,45 @@ const VentaFisica = () => {
             </p>
           ) : (
             <div className="flex flex-col" style={{ gap: '0.75rem' }}>
-              {cart.map((l) => (
-                <div key={l.key} className="flex items-center justify-between" style={{ gap: '0.75rem', borderBottom: '1px solid var(--color-surface)', paddingBottom: '0.75rem' }}>
-                  <div className="flex items-center" style={{ gap: '0.65rem', minWidth: 0 }}>
-                    <Thumb src={l.imagen} size="2.5rem" />
-                    <div style={{ minWidth: 0 }}>
-                      <p className="font-serif text-[var(--color-ink)]" style={{ fontSize: '0.95rem' }}>{l.productoNombre}</p>
-                      <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.75rem' }}>
-                        {[l.colorLabel, `Talla ${l.talla}`].filter(Boolean).join(' — ')} · {l.precioUnitario.toFixed(2)} € / u
-                      </p>
+              {cart.map((l) => {
+                const atMax = l.stockDisponible != null && l.cantidad >= l.stockDisponible
+                return (
+                  <div key={l.key} className="flex items-center justify-between" style={{ gap: '0.75rem', borderBottom: '1px solid var(--color-surface)', paddingBottom: '0.75rem' }}>
+                    <div className="flex items-center" style={{ gap: '0.65rem', minWidth: 0 }}>
+                      <Thumb src={l.imagen} size="2.5rem" />
+                      <div style={{ minWidth: 0 }}>
+                        <p className="font-serif text-[var(--color-ink)]" style={{ fontSize: '0.95rem' }}>{l.productoNombre}</p>
+                        <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.75rem' }}>
+                          {[l.colorLabel, `Talla ${l.talla}`].filter(Boolean).join(' — ')} · {l.precioUnitario.toFixed(2)} € / u
+                          {atMax && <span style={{ color: 'var(--color-accent-ink)' }}> · Última unidad</span>}
+                        </p>
+                      </div>
                     </div>
+                    <div className="flex items-center" style={{ gap: '0.5rem', flexShrink: 0 }}>
+                      <button type="button" onClick={() => cambiarCantidad(l.key, -1)} style={{ padding: '0.25rem 0.6rem', border: '1px solid var(--color-surface)' }}>−</button>
+                      <span className="font-serif" style={{ minWidth: '1.5rem', textAlign: 'center' }}>{l.cantidad}</span>
+                      <button
+                        type="button"
+                        onClick={() => cambiarCantidad(l.key, 1)}
+                        disabled={atMax}
+                        aria-label={atMax ? 'Sin más stock disponible' : 'Aumentar cantidad'}
+                        style={{
+                          padding: '0.25rem 0.6rem',
+                          border: '1px solid var(--color-surface)',
+                          opacity: atMax ? 0.4 : 1,
+                          cursor: atMax ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <span className="font-serif" style={{ width: '4.5rem', textAlign: 'right', flexShrink: 0 }}>
+                      {(l.precioUnitario * l.cantidad).toFixed(2)} €
+                    </span>
+                    <button type="button" onClick={() => quitarLinea(l.key)} aria-label="Quitar" style={{ flexShrink: 0, color: 'var(--color-muted)' }}>✕</button>
                   </div>
-                  <div className="flex items-center" style={{ gap: '0.5rem', flexShrink: 0 }}>
-                    <button type="button" onClick={() => cambiarCantidad(l.key, -1)} style={{ padding: '0.25rem 0.6rem', border: '1px solid var(--color-surface)' }}>−</button>
-                    <span className="font-serif" style={{ minWidth: '1.5rem', textAlign: 'center' }}>{l.cantidad}</span>
-                    <button type="button" onClick={() => cambiarCantidad(l.key, 1)} style={{ padding: '0.25rem 0.6rem', border: '1px solid var(--color-surface)' }}>+</button>
-                  </div>
-                  <span className="font-serif" style={{ width: '4.5rem', textAlign: 'right', flexShrink: 0 }}>
-                    {(l.precioUnitario * l.cantidad).toFixed(2)} €
-                  </span>
-                  <button type="button" onClick={() => quitarLinea(l.key)} aria-label="Quitar" style={{ flexShrink: 0, color: 'var(--color-muted)' }}>✕</button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
