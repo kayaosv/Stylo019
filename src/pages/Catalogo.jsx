@@ -136,7 +136,7 @@ const Catalogo = () => {
 
         <div className="relative z-10 flex flex-col gap-2 pb-4">
           <span className="label-xs text-[var(--color-accent-ink)]">
-            Av. Ildefonso Marañón Lavín &mdash; Sevilla
+            Calle Ciudad de Carlet &mdash; Parque Alcosa
           </span>
           <p
             className="font-sans font-light text-[var(--color-muted)] italic"

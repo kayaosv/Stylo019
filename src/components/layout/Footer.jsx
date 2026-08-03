@@ -179,7 +179,7 @@ export const Footer = () => {
               }}
             >
               <textPath href="#circle-path">
-                Sevilla — Stylo019 — Av. Ildefonso Marañón Lavín — Since 2024 —
+                Sevilla — Stylo019 — Calle Ciudad de Carlet — Since 2024 —
               </textPath>
             </text>
           </svg>
@@ -199,16 +199,35 @@ export const Footer = () => {
           <span className="label-xs text-[var(--color-muted-soft)]">
             [01] Visit
           </span>
-          <p
-            className="font-serif font-light text-[var(--color-base)]"
+          <a
+            href="https://share.google/L7NbwWcmtigtYCxEW"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-start gap-2 font-serif font-light text-[var(--color-base)] hover:text-[var(--color-accent)] transition-colors"
             style={{ fontSize: 'clamp(1.5rem, 2.6vw, 2.4rem)', lineHeight: 1.1 }}
           >
-            Av. Ildefonso
-            <br />
-            Marañón Lavín, 9
-            <br />
-            <span className="italic text-[var(--color-surface)]">41019 Sevilla</span>
-          </p>
+            <svg
+              width="0.6em"
+              height="0.6em"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ marginTop: '0.22em', flexShrink: 0 }}
+            >
+              <path d="M12 21s-7-6.2-7-11.5a7 7 0 1 1 14 0C19 14.8 12 21 12 21z" />
+              <circle cx="12" cy="9.5" r="2.4" />
+            </svg>
+            <span>
+              Calle Ciudad
+              <br />
+              de Carlet, 10
+              <br />
+              <span className="italic text-[var(--color-surface)]">41019 Sevilla</span>
+            </span>
+          </a>
           <div className="flex flex-col gap-1">
             <span className="label-xs text-[var(--color-muted-soft)]">
               Lun — Sab · 10:00 — 20:30
@@ -273,7 +292,7 @@ export const Footer = () => {
             </li>
             <li>
               <a
-                href="https://www.tiktok.com/@moda.stylo019"
+                href="https://www.tiktok.com/@stylo019_"
                 target="_blank"
                 rel="noreferrer"
                 className="font-serif font-light text-[var(--color-base)] hover:text-[var(--color-accent)] transition-colors"

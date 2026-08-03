@@ -11,8 +11,8 @@ const TITLE_WORDS = ['Escribenos', 'o', 'visitanos.']
 
 // Business info — single source of truth for this page
 const SHOP = {
-  address: 'Av. Ildefonso Marañón Lavín, 9',
-  city: '41019 Sevilla, Espana',
+  address: 'Calle Ciudad de Carlet, 10 — Local 2',
+  city: 'Parque Alcosa, 41019 Sevilla',
   hours: [
     ['Lun – Sab', '10:00 – 20:30'],
     ['Domingo', 'Cerrado'],
@@ -21,15 +21,20 @@ const SHOP = {
   whatsappMessage: 'Hola, me gustaria hacer una consulta.',
   instagram: '@modastylo019',
   instagramUrl: 'https://instagram.com/modastylo019',
-  tiktok: '@moda.stylo019',
-  tiktokUrl: 'https://www.tiktok.com/@moda.stylo019',
+  tiktok: '@stylo019_',
+  tiktokUrl: 'https://www.tiktok.com/@stylo019_',
   email: 'modastylo019@gmail.com',
-  coords: { lat: 37.3886, lng: -5.9923 },
+  coords: { lat: 37.41174, lng: -5.92721 },
+  // Google Business Profile — links straight to the real listing (reviews,
+  // photos, hours) instead of a generic "search this address" query.
+  mapsUrl: 'https://share.google/L7NbwWcmtigtYCxEW',
 }
 
-// Static Google Maps embed — no API key, no tracking beyond the iframe itself
+// Static Google Maps embed — no API key, no tracking beyond the iframe itself.
+// A share.google link can't be used as an iframe src (redirects through a JS
+// interstitial), so the embed still resolves the address as plain text.
 const MAP_EMBED_URL =
-  'https://maps.google.com/maps?q=Avenida+Ildefonso+Maranon+Lavin+9,+41019+Sevilla,+Espana&t=&z=17&ie=UTF8&iwloc=&output=embed'
+  'https://maps.google.com/maps?q=Calle+Ciudad+de+Carlet+10,+41019+Sevilla,+Espana&t=&z=17&ie=UTF8&iwloc=&output=embed'
 
 export const Contacto = () => {
   const rootRef = useRef(null)
@@ -198,7 +203,7 @@ export const Contacto = () => {
         </div>
         <div className="col-span-6 md:col-span-3 md:col-start-10 text-right">
           <span className="label-xs text-[var(--color-muted)]">
-            37.3886 N // 5.9923 W
+            37.4117 N // 5.9272 W
           </span>
         </div>
       </div>
@@ -358,21 +363,45 @@ export const Contacto = () => {
             </span>
           </div>
 
-          {/* Address */}
+          {/* Address — links out to the real Google Business listing */}
           <div className="flex flex-col gap-2">
             <span className="label-xs text-[var(--color-muted)]">
               Direccion
             </span>
-            <p
-              className="font-serif font-light text-[var(--color-ink)]"
-              style={{ fontSize: '1.35rem', lineHeight: 1.3 }}
+            <a
+              href={SHOP.mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor="link"
+              data-cursor-label="Ver en Maps"
+              className="group inline-flex items-start gap-2.5 self-start"
             >
-              {SHOP.address}
-              <br />
-              <span className="italic text-[var(--color-muted)]">
-                {SHOP.city}
-              </span>
-            </p>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-[var(--color-accent-ink)] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110"
+                style={{ marginTop: '0.3rem', flexShrink: 0 }}
+              >
+                <path d="M12 21s-7-6.2-7-11.5a7 7 0 1 1 14 0C19 14.8 12 21 12 21z" />
+                <circle cx="12" cy="9.5" r="2.4" />
+              </svg>
+              <p
+                className="font-serif font-light text-[var(--color-ink)] transition-colors duration-300 group-hover:text-[var(--color-accent-ink)]"
+                style={{ fontSize: '1.35rem', lineHeight: 1.3 }}
+              >
+                {SHOP.address}
+                <br />
+                <span className="italic text-[var(--color-muted)]">
+                  {SHOP.city}
+                </span>
+              </p>
+            </a>
           </div>
 
           {/* Hours */}
@@ -519,7 +548,7 @@ export const Contacto = () => {
             [ 03 ] / Donde estamos
           </span>
           <span className="label-xs text-[var(--color-muted)] hidden md:inline">
-            Av. Ildefonso Marañón Lavín, 9 — Sevilla
+            Calle Ciudad de Carlet, 10 — Parque Alcosa, Sevilla
           </span>
         </div>
 
@@ -532,13 +561,47 @@ export const Contacto = () => {
           }}
         >
           <iframe
-            title="Mapa — ModaStylo019, Av. Ildefonso Marañón Lavín, Sevilla"
+            title="Mapa — Stylo019, Calle Ciudad de Carlet 10, Parque Alcosa, Sevilla"
             src={MAP_EMBED_URL}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             className="absolute inset-0 w-full h-full border-0"
             allowFullScreen
           />
+
+          {/* Floating CTA — the embed itself isn't clickable-through to a
+              real Maps page, this is what actually opens the listing */}
+          <a
+            href={SHOP.mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Abrir ubicacion en Google Maps"
+            data-cursor="link"
+            data-cursor-label="Abrir en Maps"
+            className="group absolute top-4 right-4 z-10 inline-flex items-center gap-2 bg-[var(--color-paper)] border border-[var(--color-surface)] px-3.5 py-2.5 transition-colors hover:bg-[var(--color-ink)] hover:border-[var(--color-ink)]"
+            style={{ boxShadow: '0 4px 20px -4px rgba(10, 10, 10, 0.25)' }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-[var(--color-accent-ink)] transition-colors group-hover:text-[var(--color-paper)]"
+            >
+              <path d="M12 21s-7-6.2-7-11.5a7 7 0 1 1 14 0C19 14.8 12 21 12 21z" />
+              <circle cx="12" cy="9.5" r="2.4" />
+            </svg>
+            <span
+              className="label-xs text-[var(--color-ink)] transition-colors group-hover:text-[var(--color-paper)]"
+              style={{ letterSpacing: '0.1em' }}
+            >
+              Abrir en Maps
+            </span>
+          </a>
         </div>
       </div>
     </section>

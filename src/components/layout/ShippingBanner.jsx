@@ -13,7 +13,7 @@ export const ShippingBanner = () => {
   const MESSAGES = [
     `Envío gratis a partir de ${umbral}€`,
     'Envíos a toda España — consulta tu zona por WhatsApp',
-    'Recogida presencial en Sevilla · Av. Ildefonso Marañón Lavín',
+    'Recogida presencial en Sevilla · Parque Alcosa',
   ]
 
   const TRACK = [...MESSAGES, ...MESSAGES, ...MESSAGES, ...MESSAGES]

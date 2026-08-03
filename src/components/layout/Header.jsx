@@ -156,10 +156,10 @@ export const Header = ({ variant = 'default' }) => {
         className="hidden md:flex items-center justify-between px-8 pt-4 pointer-events-auto"
       >
         <span className="label-xs text-[var(--color-muted)]">
-          Sevilla — 37.3886° N / 5.9823° W
+          Sevilla — 37.4117° N / 5.9272° W
         </span>
         <span className="label-xs text-[var(--color-muted)] tracking-[0.4em]">
-          Av. Ildefonso Marañón Lavín, 9 — 41019
+          Calle Ciudad de Carlet, 10 — 41019
         </span>
         <span className="label-xs text-[var(--color-muted)]">
           Est. MMXXIV

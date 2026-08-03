@@ -192,7 +192,7 @@ export const MobileMenu = () => {
         {/* Bottom meta */}
         <div className="flex flex-col gap-2 pt-10 border-t border-[var(--color-surface)]">
           <span className="label-xs text-[var(--color-muted)]">
-            Av. Ildefonso Marañón Lavín, 9 &mdash; 41019 Sevilla
+            Calle Ciudad de Carlet, 10 &mdash; 41019 Sevilla
           </span>
           <span className="label-xs text-[var(--color-muted)]">
             658 509 332 &middot; @modastylo019

@@ -50,7 +50,7 @@ export const TicketVenta = ({ venta, onNuevaVenta }) => (
       <p className="font-serif" style={{ fontSize: '1.15rem', fontWeight: 400, textAlign: 'center' }}>Stylo019</p>
       <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>ModaMariaJose</p>
       <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>CIF: 28753199W</p>
-      <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Av. Ildefonso Marañón Lavín, 9</p>
+      <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Calle Ciudad de Carlet, 10, Local 2</p>
       <p style={{ textAlign: 'center', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>41019 Sevilla</p>
 
       <div style={{ borderTop: '1px dashed var(--color-surface)', margin: '0.75rem 0' }} />

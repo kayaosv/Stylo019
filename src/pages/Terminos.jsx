@@ -55,7 +55,7 @@ const Terminos = () => (
       <p>
         <strong className="text-[var(--color-ink)]">Stylo019</strong><br />
         CIF: 28753199W<br />
-        Av. Ildefonso Marañón Lavín, 9 — 41019 Sevilla, España<br />
+        Calle Ciudad de Carlet, 10, Local 2 — 41019 Sevilla, España<br />
         Email:{' '}
         <a href="mailto:modastylo019@gmail.com" className="text-[var(--color-ink)] underline underline-offset-4">
           modastylo019@gmail.com

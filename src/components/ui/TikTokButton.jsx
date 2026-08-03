@@ -4,7 +4,7 @@ import gsap from 'gsap'
 
 gsap.registerPlugin(useGSAP)
 
-const TIKTOK_URL = 'https://www.tiktok.com/@moda.stylo019'
+const TIKTOK_URL = 'https://www.tiktok.com/@stylo019_'
 
 export const TikTokButton = () => {
   const rootRef = useRef(null)
@@ -105,7 +105,7 @@ export const TikTokButton = () => {
               className="font-serif italic font-light text-[var(--color-ink)]"
               style={{ fontSize: '1.05rem' }}
             >
-              @moda.stylo019
+              @stylo019_
             </span>
           </div>
         </div>
@@ -134,7 +134,7 @@ export const TikTokButton = () => {
             }}
           >
             <textPath href="#tt-ring-path">
-              Stylo019 — TikTok — @moda.stylo019 —
+              Stylo019 — TikTok — @stylo019_ —
             </textPath>
           </text>
         </svg>

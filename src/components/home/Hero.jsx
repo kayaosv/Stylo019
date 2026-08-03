@@ -275,7 +275,7 @@ export const Hero = () => {
               }}
             >
               <textPath href="#hero-circle-path">
-                Stylo019 — Av. Ildefonso Marañón Lavín — Since 2024 —
+                Stylo019 — Calle Ciudad de Carlet — Since 2024 —
               </textPath>
             </text>
           </svg>

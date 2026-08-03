@@ -36,7 +36,7 @@ const Privacidad = () => (
       <p>
         <strong className="text-[var(--color-ink)]">Stylo019</strong><br />
         CIF: 28753199W<br />
-        Av. Ildefonso Marañón Lavín, 9 — 41019 Sevilla, España<br />
+        Calle Ciudad de Carlet, 10, Local 2 — 41019 Sevilla, España<br />
         Email: modastylo019@gmail.com<br />
         WhatsApp: 658 509 332
       </p>
