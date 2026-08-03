@@ -58,11 +58,17 @@ El objetivo es una tienda funcional y visualmente cuidada para una clienta real 
 - Imágenes: Supabase Storage bucket `products`
 - Colores y tokens de diseño en `tailwind.config.js`
 
+## Flujo de ramas
+Solo dos ramas viven a largo plazo: `main` (producción, lo que ve la clienta)
+y `preview` (integración — todo cambio nuevo entra aquí primero, se prueba
+contra su propio deploy de Vercel, y solo se mergea a `main` cuando está
+confirmado). No se crean ramas `feature/*` de larga duración; si hace falta
+aislar un cambio grande se puede usar una rama corta que se mergea a
+`preview` y se borra en seguida. Deploy de Edge Functions es la excepción:
+se publican en cuanto se hace `deploy_edge_function`, independientemente de
+la rama de git — no hay "preview" de Edge Functions.
 
-## Estado — actualizado 2026-07-22
-
-Los dos puntos evaluados el 2026-07-14 (stock por color+talla, venta física) están
-**ambos implementados**. Detalle:
+## Estado — actualizado 2026-08-03
 
 ### 1. Stock por color + talla — implementado 2026-07-16, en producción
 
@@ -73,7 +79,7 @@ lee ese campo (banner "Agotado", filtro de catálogo) sigue funcionando sin
 tocarlo. Adopción gradual vía el toggle "Stock independiente por color" en
 `ProductoForm.jsx` — los productos existentes no se migraron automáticamente.
 
-### 2. Venta física (TPV) + gobernanza de stock + facturación Odoo — implementado 2026-07-22
+### 2. Venta física (TPV) + gobernanza de stock + facturación Odoo — en `main` desde 2026-07-31
 
 Misma arquitectura que el TPV de Vapers Alcosa (`kayaosv/AlcosaProduct`,
 `/admin/tpv`), adaptada al modelo de stock jsonb de este proyecto (no hay
@@ -96,21 +102,22 @@ no filas propias):
   solo `authenticated` (revocado de `anon` explícitamente — este proyecto
   otorga EXECUTE por default a `anon` en funciones nuevas, mismo gotcha ya
   documentado en Alcosa).
-- **`crear_venta_tpv(p_items, p_metodo_pago)`** — RPC atómica (mismo patrón
-  `FOR UPDATE` que `create_pos_sale()` en Alcosa): bloquea la fila de cada
-  producto, resuelve precio igual que `src/lib/precio.js`
-  (`precios_talla[talla] → precio`, luego `precio_oferta` si es menor),
-  descuenta `colores[i].tallas[talla]` cuando el color tiene stock propio o
-  `productos.tallas[talla]` en caso contrario (el trigger de la migración 009
-  recalcula el agregado solo), inserta en `ventas`/`venta_items`. Guard
-  interno `auth.uid() IS NULL` — mismo criterio que el resto del proyecto
-  (no hay tabla `profiles`/roles, cualquier sesión autenticada es la única
-  cuenta admin de la tienda).
-- **Tablas nuevas `ventas`/`venta_items`** — header + líneas (no el modelo
-  plano de una fila por línea que se había esbozado originalmente), para que
-  una venta completa mapee a una sola factura de Odoo con varias líneas,
-  igual que `orders`/`order_items` en Alcosa. RLS: mismo patrón `admin_all`
-  que el resto de tablas del proyecto (`authenticated`, sin acceso público).
+- **`crear_venta_tpv(p_items, p_metodo_pago)`** y **`crear_venta_web(...)`**
+  (esta última llamada desde `stripe-webhook` al confirmarse el pago) — RPCs
+  atómicas (mismo patrón `FOR UPDATE` que `create_pos_sale()` en Alcosa):
+  bloquean la fila de cada producto, resuelven precio igual que
+  `src/lib/precio.js` (`precios_talla[talla] → precio`, luego `precio_oferta`
+  si es menor), y descuentan stock **por variante real, no por agregado**:
+  si el color tiene su propio mapa `tallas` (`v_using_color_stock`), descuentan
+  ahí (`colores[i].tallas[talla]`); si no, descuentan `productos.tallas[talla]`.
+  Verificado contra la función *desplegada en producción* (no solo el archivo
+  de migración) el 2026-08-03 con datos reales — ej. "Pantalón Lazo" talla 38
+  tiene 1 unidad en Azul y 1 en Burdeos (agregado: 2) y ambas RPCs respetan
+  ese reparto, nunca el agregado, al validar y descontar.
+- **Tablas `ventas`/`venta_items`** — header + líneas, para que una venta
+  completa mapee a una sola factura de Odoo con varias líneas, igual que
+  `orders`/`order_items` en Alcosa. RLS: patrón `admin_all` (`authenticated`,
+  sin acceso público).
 - **Edge Function `odoo-sync`** — llamada fire-and-forget desde
   `VentaFisica.jsx` justo después de `crear_venta_tpv()`: la venta ya quedó
   confirmada y el stock ya se descontó en ese momento, esta función nunca
@@ -125,13 +132,56 @@ no filas propias):
   `Privacidad.jsx`/`Terminos.jsx` (CIF 28753199W, Av. Ildefonso Marañón
   Lavín 9, 41019 Sevilla).
 
-Trabajo en rama `feature/venta-fisica-odoo` (no mergeada a `main` — pendiente
-de revisión visual del dueño antes de mergear, ver preview de Vercel).
-Migración `010_venta_fisica_odoo.sql` y la Edge Function ya están aplicadas
-en la base de datos de producción (additivo, no rompe nada existente) — solo
-el código de la UI está todavía en preview.
+Mergeado a `main` el 2026-07-31 (commit `5cba254`, junto con dashboard de
+`/admin` como landing con accesos rápidos). Migraciones `010_venta_fisica_odoo`,
+`011_pedidos_web_stock`, `012_fix_ambiguous_columns` (bug real de "column
+reference ambiguous" en `crear_venta_tpv`/`crear_venta_web`, encontrado
+probando el botón "Cobrar" — ninguna venta se había completado antes de este
+fix), `013_barcode_imagenes` y `014_colores_libres_backfill` ya aplicadas en
+producción.
 
 **Pendiente**: credenciales de Odoo para ModaMariaJose (nueva cuenta de
 usuario dedicada en Odoo, no la cuenta admin del dueño — mismo criterio que
 en Alcosa) + decidir si hace falta certificado AEAT/Veri*Factu antes de
 emitir facturas reales.
+
+### 3. Catálogo — talla única + colores libres + banner "Agotado" — en `main` desde 2026-08-01
+
+- Talla única (`tipo_talla: 'unica'`) y colores personalizados sin límite fijo
+  (cualquier `id` con `label`+`hex` propios vale, ver `isCustomColor` en
+  `src/lib/colores.js`) — migración `014_colores_libres_backfill.sql` migró
+  los colores fijos antiguos (azul/marrón/beige/gris) al modelo libre.
+- Banner de "Agotado" en la galería de producto del catálogo.
+- Bizum como método de pago en el checkout (junto a tarjeta vía Stripe).
+
+### 4. Carrito — límite real de stock por variante + errores de checkout legibles — mergeado a `preview` el 2026-08-03, pendiente de subir a `main`
+
+Dos fixes verificados y con Vercel preview en verde, consolidados en la rama
+`preview`:
+
+- **No dejar aumentar la cantidad más allá del stock real**
+  (`src/store/useCartStore.js`, `src/components/carrito/ItemCarrito.jsx`).
+  El tope (`stockDisponible`) se calcula por variante exacta — color
+  seleccionado + talla — nunca por el agregado del producto. Cada línea del
+  carrito se identifica por `id + talla + colorId`, así que dos colores del
+  mismo producto/talla son líneas independientes con su propio tope. El
+  backend (`crear_venta_tpv`/`crear_venta_web`, punto 2) vuelve a validar
+  contra el stock real de la variante al confirmar la venta — doble
+  candado, no solo confianza en el cliente. Limitación conocida y aceptada:
+  líneas de carrito guardadas en `localStorage` *antes* de este cambio no
+  tienen `stockDisponible` y quedan sin tope hasta que el cliente las vuelva
+  a añadir; el backend las revalida igual al pagar.
+- **Mostrar el motivo real de un error de checkout**
+  (`src/components/carrito/CartDrawer.jsx`, `src/services/stripe.js`).
+  Antes, cualquier rechazo del servidor (ej. "Solo quedan 1 unidades de X")
+  se mostraba siempre como "No se pudo iniciar el pago" — `supabase.functions.invoke()`
+  envuelve errores no-2xx en un `FunctionsHttpError` genérico y el mensaje
+  real solo está en `error.context.json()`, que nadie leía. Verificado
+  contra el servidor real forzando un HTTP 409 por stock excedido.
+
+**Pendiente**: mergear `preview` a `main` tras confirmar el deploy de
+Vercel de `preview`. Una vez en `main`, borrar las ramas `feature/*` ya
+absorbidas (`venta-fisica-odoo`, `banner-agotado-galeria`, `bizum-checkout`,
+`talla-unica-colores-libres`, `limitar-stock-carrito`,
+`errores-checkout-especificos`) — todas quedan subsumidas por `main`/`preview`
+y no aportan nada vivo.
