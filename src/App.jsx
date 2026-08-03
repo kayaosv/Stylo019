@@ -31,6 +31,7 @@ const Envios = lazy(() => import('@/pages/admin/Envios'))
 const VentaFisica = lazy(() => import('@/pages/admin/VentaFisica'))
 const Pedidos = lazy(() => import('@/pages/admin/Pedidos'))
 const PedidoDetail = lazy(() => import('@/pages/admin/PedidoDetail'))
+const Etiquetas = lazy(() => import('@/pages/admin/Etiquetas'))
 
 gsap.registerPlugin(useGSAP)
 
@@ -99,6 +100,7 @@ const App = () => (
           <Route path="venta-fisica" element={<VentaFisica />} />
           <Route path="pedidos" element={<Pedidos />} />
           <Route path="pedidos/:id" element={<PedidoDetail />} />
+          <Route path="etiquetas" element={<Etiquetas />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

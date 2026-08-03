@@ -4,6 +4,7 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { fetchProductosAdmin } from '@/services/productos'
 import { fetchCategorias } from '@/services/categorias'
+import { fetchEtiquetasPendientes } from '@/services/etiquetas'
 import { useAdminPedidos, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
 
 const CANAL_LABEL = { web: 'Web · Stripe', tienda: 'Tienda física' }
@@ -50,22 +51,34 @@ const HeaderAction = ({ to, icon, label, primary }) => (
   </Link>
 )
 
-const StatCard = ({ label, value, warn }) => (
-  <div
-    className="flex flex-col bg-[var(--color-paper)]"
-    style={{ padding: '0.9rem 1.1rem', border: '1px solid var(--color-surface)', gap: '0.3rem' }}
-  >
-    <span className="label-xs text-[var(--color-muted)]" style={{ letterSpacing: '0.18em' }}>
-      {label}
-    </span>
-    <span
-      className="font-serif"
-      style={{ fontSize: '1.5rem', fontWeight: 300, color: warn ? '#c0392b' : 'var(--color-ink)' }}
+// `to` makes the card a Link (e.g. the pending-labels count linking to
+// /admin/etiquetas) — plain div otherwise, same as before.
+const StatCard = ({ label, value, warn, to }) => {
+  const content = (
+    <div
+      className="flex flex-col bg-[var(--color-paper)]"
+      style={{ padding: '0.9rem 1.1rem', border: '1px solid var(--color-surface)', gap: '0.3rem' }}
     >
-      {value}
-    </span>
-  </div>
-)
+      <span className="label-xs text-[var(--color-muted)]" style={{ letterSpacing: '0.18em' }}>
+        {label}
+      </span>
+      <span
+        className="font-serif"
+        style={{ fontSize: '1.5rem', fontWeight: 300, color: warn ? '#c0392b' : 'var(--color-ink)' }}
+      >
+        {value}
+      </span>
+    </div>
+  )
+
+  return to ? (
+    <Link to={to} className="transition-opacity hover:opacity-80">
+      {content}
+    </Link>
+  ) : (
+    content
+  )
+}
 
 // Grafico de lineas con eje Y real (gridlines + valores) — a diferencia
 // del de Alcosa, que solo tiene fecha inicial/final sin ninguna
@@ -115,18 +128,22 @@ const Dashboard = () => {
   const ref = useRef(null)
   const [productos, setProductos] = useState([])
   const [categorias, setCategorias] = useState([])
+  const [etiquetasPendientes, setEtiquetasPendientes] = useState(0)
   const [loadingProductos, setLoadingProductos] = useState(true)
   const { pedidos, loading: loadingPedidos } = useAdminPedidos()
   const [lowStockExpanded, setLowStockExpanded] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([fetchProductosAdmin({}), fetchCategorias()]).then(([prod, cat]) => {
-      if (cancelled) return
-      setProductos(prod.data ?? [])
-      setCategorias(cat.data ?? [])
-      setLoadingProductos(false)
-    })
+    Promise.all([fetchProductosAdmin({}), fetchCategorias(), fetchEtiquetasPendientes()]).then(
+      ([prod, cat, etiquetas]) => {
+        if (cancelled) return
+        setProductos(prod.data ?? [])
+        setCategorias(cat.data ?? [])
+        setEtiquetasPendientes((etiquetas.data ?? []).length)
+        setLoadingProductos(false)
+      }
+    )
     return () => {
       cancelled = true
     }
@@ -336,11 +353,17 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Fila 2: totales compactos (Total productos → Valor inventario → Sin stock) */}
-      <div className="grid grid-cols-3 dash-section" style={{ gap: '0.9rem' }}>
+      {/* Fila 2: totales compactos (Total productos → Valor inventario → Sin stock → Sin etiquetar) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 dash-section" style={{ gap: '0.9rem' }}>
         <StatCard label="Total productos" value={stats.activos} />
         <StatCard label="Valor inventario" value={eur(stats.valorInventario)} />
         <StatCard label="Sin stock" value={stats.sinStock} warn={stats.sinStock > 0} />
+        <StatCard
+          label="Sin etiquetar"
+          value={etiquetasPendientes}
+          warn={etiquetasPendientes > 0}
+          to="/admin/etiquetas"
+        />
       </div>
 
       {/* Fila 3: paneles compactos, cada uno del ancho de su contenido —
