@@ -11,12 +11,8 @@ import { TicketVenta } from '@/components/admin/TicketVenta'
 // any other item, instead of a separate "free line" concept.
 const TALLA_UNICA = TALLA_SETS.unica[0]
 
-const BARCODE_FORMATS = ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code']
-
 const hasCamera = () =>
   typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
-const hasBarcodeDetector = () =>
-  typeof window !== 'undefined' && 'BarcodeDetector' in window
 
 // Only sizes with stock > 0 are selectable — mirrors estaAgotado()'s logic
 // of inspecting values, not keys, so it works for any tipo_talla set.
@@ -50,9 +46,8 @@ const VentaFisica = () => {
   const scanRef = useRef(null)
   const inputRef = useRef(null)
   const videoRef = useRef(null)
-  const streamRef = useRef(null)
-  const rafRef = useRef(null)
-  const detectorRef = useRef(null)
+  const codeReaderRef = useRef(null)
+  const controlsRef = useRef(null)
 
   const [codigo, setCodigo] = useState('')
   const [busqueda, setBusqueda] = useState('')
@@ -102,47 +97,46 @@ const VentaFisica = () => {
 
   useEffect(() => () => detenerCamara(), [])
 
+  // Pure-JS decoder (ZXing) instead of the native BarcodeDetector Shape
+  // Detection API — that API is Chromium-only, so it silently never worked
+  // on any iOS browser (Safari and everything else on iOS is WebKit under
+  // the hood, per Apple's engine policy). ZXing decodes frames itself, so
+  // it works the same on Android Chrome and iPhone Safari.
   const detenerCamara = () => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    streamRef.current?.getTracks().forEach((t) => t.stop())
-    streamRef.current = null
+    controlsRef.current?.stop()
+    controlsRef.current = null
+    const stream = videoRef.current?.srcObject
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop())
+      videoRef.current.srcObject = null
+    }
   }
 
   const iniciarCamara = async () => {
     setCameraError(null)
-    if (!hasBarcodeDetector()) {
-      setCameraError('Tu navegador no soporta detección de códigos. Usa Chrome en Android o Safari iOS 16.4+')
-      return
-    }
+    if (!videoRef.current) return
     try {
-      detectorRef.current = new window.BarcodeDetector({ formats: BARCODE_FORMATS })
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 } },
-      })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
+      if (!codeReaderRef.current) {
+        // Lazy-loaded: the barcode gun is the primary flow (per el dueño),
+        // the camera is a fallback — no reason to ship ZXing's ~130kb
+        // gzipped bundle to every /admin/venta-fisica load.
+        const { BrowserMultiFormatReader } = await import('@zxing/browser')
+        codeReaderRef.current = new BrowserMultiFormatReader()
       }
-      loopCamara()
+      controlsRef.current = await codeReaderRef.current.decodeFromConstraints(
+        { video: { facingMode: 'environment', width: { ideal: 1280 } } },
+        videoRef.current,
+        (result) => {
+          if (!result) return // no code in this frame yet — expected, keep scanning
+          navigator.vibrate?.(80)
+          detenerCamara()
+          setCameraMode(false)
+          buscarPorCodigo(result.getText())
+        },
+      )
     } catch (err) {
       setCameraError(`No se pudo acceder a la cámara: ${err.message}`)
     }
-  }
-
-  const loopCamara = async () => {
-    if (!videoRef.current || !detectorRef.current) return
-    try {
-      const codes = await detectorRef.current.detect(videoRef.current)
-      if (codes.length > 0) {
-        navigator.vibrate?.(80)
-        detenerCamara()
-        setCameraMode(false)
-        await buscarPorCodigo(codes[0].rawValue)
-        return
-      }
-    } catch (_) {}
-    rafRef.current = requestAnimationFrame(loopCamara)
   }
 
   const toggleCamara = () => {
