@@ -77,10 +77,11 @@ const VentaFisica = () => {
   const [discountValor, setDiscountValor] = useState('')
 
   // "Alta rápida": sell a barcode that isn't in the catalog yet.
-  const [quickAdd, setQuickAdd] = useState(null) // { codigo }
+  const [quickAdd, setQuickAdd] = useState(null) // { codigo: string | null }
   const [quickAddNombre, setQuickAddNombre] = useState('')
   const [quickAddPrecio, setQuickAddPrecio] = useState('')
   const [quickAddCantidad, setQuickAddCantidad] = useState('1')
+  const [quickAddCodigoInput, setQuickAddCodigoInput] = useState('') // only used when quickAdd.codigo is null
   const [quickAddSaving, setQuickAddSaving] = useState(false)
   const [quickAddError, setQuickAddError] = useState(null)
 
@@ -323,13 +324,16 @@ const VentaFisica = () => {
     setDiscountStep(null)
   }
 
-  const abrirAltaRapida = (codigo) => {
-    setQuickAdd({ codigo })
+  const abrirAltaRapida = (codigoPrellenado) => {
+    const clean = (codigoPrellenado ?? '').trim()
+    setQuickAdd({ codigo: clean || null })
     setQuickAddNombre('')
     setQuickAddPrecio('')
     setQuickAddCantidad('1')
+    setQuickAddCodigoInput('')
     setQuickAddError(null)
     setNotFound(null)
+    setCodigo('')
   }
 
   const guardarAltaRapida = async () => {
@@ -346,6 +350,7 @@ const VentaFisica = () => {
     }
     setQuickAddSaving(true)
     setQuickAddError(null)
+    const barcode = quickAdd.codigo || quickAddCodigoInput.trim() || null
     const { data, error: err } = await supabase
       .from('productos')
       .insert({
@@ -353,7 +358,7 @@ const VentaFisica = () => {
         precio,
         categoria: 'venta_rapida',
         activo: false,
-        barcode: quickAdd.codigo,
+        barcode,
         tipo_talla: 'unica',
         tallas: { [TALLA_UNICA]: cantidad },
       })
@@ -499,20 +504,19 @@ const VentaFisica = () => {
             )}
 
             {notFound && (
-              <div style={{ marginTop: '0.75rem' }}>
-                <p className="font-sans" style={{ fontSize: '0.78rem', color: '#c0392b' }}>
-                  Código no encontrado — ningún producto o color tiene ese código de barras.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => abrirAltaRapida(notFound)}
-                  className="font-sans"
-                  style={{ fontSize: '0.75rem', marginTop: '0.5rem', padding: '0.5rem 0.85rem', border: '1px solid var(--color-surface)' }}
-                >
-                  + Registrar y vender igual
-                </button>
-              </div>
+              <p className="font-sans" style={{ fontSize: '0.78rem', color: '#c0392b', marginTop: '0.75rem' }}>
+                Código no encontrado — ningún producto o color tiene ese código de barras.
+              </p>
             )}
+
+            <button
+              type="button"
+              onClick={() => abrirAltaRapida(notFound || codigo)}
+              className="font-sans"
+              style={{ fontSize: '0.75rem', marginTop: '0.75rem', padding: '0.5rem 0.85rem', border: '1px solid var(--color-surface)' }}
+            >
+              + Vender un producto no registrado en web
+            </button>
           </div>
 
           <div className="bg-[var(--color-paper)]" style={{ border: '1px solid var(--color-surface)', padding: '1.5rem' }}>
@@ -750,9 +754,12 @@ const VentaFisica = () => {
       )}
 
       {quickAdd && (
-        <Modal onClose={() => setQuickAdd(null)} title="Registrar y vender">
+        <Modal onClose={() => setQuickAdd(null)} title="Vender un producto no registrado en web">
           <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.78rem', marginBottom: '0.85rem' }}>
-            Código {quickAdd.codigo} — no existe en el catálogo online. Se guarda oculto (no se muestra en la tienda) y queda disponible para venderlo desde acá.
+            {quickAdd.codigo
+              ? `Código ${quickAdd.codigo} — no existe en el catálogo online. `
+              : ''}
+            Se guarda oculto (no se muestra en la tienda) y queda disponible para venderlo desde acá.
           </p>
           <input
             value={quickAddNombre}
@@ -762,6 +769,15 @@ const VentaFisica = () => {
             className="w-full bg-[var(--color-base)] font-sans text-[var(--color-ink)] outline-none"
             style={{ border: '1px solid var(--color-surface)', padding: '0.85rem 1rem', fontSize: '0.9rem', marginBottom: '0.65rem' }}
           />
+          {!quickAdd.codigo && (
+            <input
+              value={quickAddCodigoInput}
+              onChange={(e) => setQuickAddCodigoInput(e.target.value)}
+              placeholder="Código de barras (opcional)"
+              className="w-full bg-[var(--color-base)] font-sans text-[var(--color-ink)] outline-none"
+              style={{ border: '1px solid var(--color-surface)', padding: '0.85rem 1rem', fontSize: '0.9rem', marginBottom: '0.65rem' }}
+            />
+          )}
           <div className="flex" style={{ gap: '0.65rem', marginBottom: '0.85rem' }}>
             <input
               type="number"
