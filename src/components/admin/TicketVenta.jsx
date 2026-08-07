@@ -47,11 +47,15 @@ export const TicketVenta = ({ venta, onNuevaVenta }) => (
       className="bg-[var(--color-paper)] font-sans text-[var(--color-ink)]"
       style={{ width: '320px', padding: '1.5rem', border: '1px solid var(--color-surface)', fontSize: '0.8rem', lineHeight: 1.5 }}
     >
-      <p className="font-serif" style={{ fontSize: '1.15rem', fontWeight: 400, textAlign: 'center' }}>Stylo019</p>
+      <img
+        src="/logo-ticket.png"
+        alt="Stylo019"
+        style={{ display: 'block', width: '140px', margin: '0 auto 0.5rem' }}
+      />
       <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>ModaMariaJose</p>
-      <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>CIF: 28753199W</p>
+      <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>DNI/CIF: 28753199W</p>
       <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Calle Ciudad de Carlet, 10, Local 2</p>
-      <p style={{ textAlign: 'center', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>41019 Sevilla</p>
+      <p style={{ textAlign: 'center', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>Parque Alcosa, 41019 Sevilla</p>
 
       <div style={{ borderTop: '1px dashed var(--color-surface)', margin: '0.75rem 0' }} />
 
@@ -88,6 +92,28 @@ export const TicketVenta = ({ venta, onNuevaVenta }) => (
       <p style={{ color: 'var(--color-muted)', marginTop: '0.35rem' }}>
         Pago: {PAGO_LABEL[venta.metodoPago] ?? venta.metodoPago}
       </p>
+
+      <div style={{ borderTop: '1px dashed var(--color-surface)', margin: '0.75rem 0' }} />
+
+      <p style={{ textAlign: 'center', fontSize: '0.72rem' }}>
+        Dispones de 14 días naturales desde la compra para cambios o devolución, presentando este ticket.
+      </p>
+
+      {(venta.odooQrUrl || venta.odooVerifactuHash) && (
+        <>
+          <div style={{ borderTop: '1px dashed var(--color-surface)', margin: '0.75rem 0' }} />
+          <div className="flex flex-col items-center" style={{ gap: '0.35rem' }}>
+            {venta.odooQrUrl && (
+              <img src={venta.odooQrUrl} alt="QR Veri*Factu" style={{ width: '90px', height: '90px' }} />
+            )}
+            {venta.odooVerifactuHash && (
+              <p style={{ fontSize: '0.6rem', color: 'var(--color-muted)', textAlign: 'center', wordBreak: 'break-all' }}>
+                Huella: {venta.odooVerifactuHash}
+              </p>
+            )}
+          </div>
+        </>
+      )}
 
       <div style={{ borderTop: '1px dashed var(--color-surface)', margin: '0.75rem 0' }} />
 
