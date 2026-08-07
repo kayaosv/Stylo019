@@ -1,6 +1,16 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAdminPedidos, updatePedidoEstado, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
+
+// cancelar_venta() repone stock pero nunca toca el dinero — un pedido
+// 'tienda' ya se cobró en mano (efectivo/tarjeta física), uno 'web' se
+// cobró por Stripe. El aviso lo deja explícito para que cancelar no se
+// confunda con "ya se devolvió el dinero".
+const mensajeCancelacion = (pedido) =>
+  pedido.canal === 'tienda'
+    ? `Esta venta ya se cobró en el mostrador (${pedido.metodo_pago === 'tarjeta' ? 'tarjeta' : 'efectivo'}). Cancelarla repone el stock de cada línea, pero NO devuelve el dinero automáticamente — si corresponde reembolso, hay que gestionarlo aparte.`
+    : 'Esta venta se pagó por Stripe. Cancelarla repone el stock de cada línea, pero no reembolsa el pago automáticamente — si corresponde, gestiona el reembolso desde el dashboard de Stripe.'
 
 const CANAL_LABEL = { web: 'Web · Stripe', tienda: 'Tienda física' }
 
@@ -59,9 +69,9 @@ const Pedidos = () => {
   const [filtro, setFiltro] = useState('all')
   const [busqueda, setBusqueda] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
 
-  const cambiarEstado = async (pedido, next) => {
-    if (next === 'cancelado' && !confirm('¿Cancelar este pedido? Se repondrá el stock.')) return
+  const aplicarCambioEstado = async (pedido, next) => {
     setUpdatingId(pedido.id)
     const prev = pedidos
     setPedidos((ps) => ps.map((p) => (p.id === pedido.id ? { ...p, estado: next } : p)))
@@ -73,6 +83,21 @@ const Pedidos = () => {
     } finally {
       setUpdatingId(null)
     }
+  }
+
+  const cambiarEstado = (pedido, next) => {
+    if (next === 'cancelado') {
+      setCancelTarget(pedido)
+      return
+    }
+    aplicarCambioEstado(pedido, next)
+  }
+
+  const confirmarCancelacion = async () => {
+    if (!cancelTarget) return
+    const pedido = cancelTarget
+    setCancelTarget(null)
+    await aplicarCambioEstado(pedido, 'cancelado')
   }
 
   const counts = useMemo(() => {
@@ -194,6 +219,18 @@ const Pedidos = () => {
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!cancelTarget}
+        title="Cancelar venta"
+        message={cancelTarget ? mensajeCancelacion(cancelTarget) : ''}
+        confirmLabel="Cancelar venta"
+        loadingLabel="Cancelando…"
+        cancelLabel="Volver"
+        loading={updatingId === cancelTarget?.id}
+        onConfirm={confirmarCancelacion}
+        onCancel={() => setCancelTarget(null)}
+      />
     </div>
   )
 }

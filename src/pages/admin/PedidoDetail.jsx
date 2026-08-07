@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fetchPedidoById, updatePedidoEstado, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
+
+const mensajeCancelacion = (pedido) =>
+  pedido.canal === 'tienda'
+    ? `Esta venta ya se cobró en el mostrador (${pedido.metodo_pago === 'tarjeta' ? 'tarjeta' : 'efectivo'}). Cancelarla repone el stock de cada línea, pero NO devuelve el dinero automáticamente — si corresponde reembolso, hay que gestionarlo aparte.`
+    : 'Esta venta se pagó por Stripe. Cancelarla repone el stock de cada línea, pero no reembolsa el pago automáticamente — si corresponde, gestiona el reembolso desde el dashboard de Stripe.'
 
 const formatDate = (iso) =>
   new Date(iso).toLocaleDateString('es-ES', {
@@ -14,6 +20,7 @@ const PedidoDetail = () => {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState(null)
+  const [cancelConfirm, setCancelConfirm] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -37,8 +44,7 @@ const PedidoDetail = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  const cambiarEstado = async (next) => {
-    if (next === 'cancelado' && !confirm('¿Cancelar este pedido? Se repondrá el stock de cada línea.')) return
+  const aplicarCambioEstado = async (next) => {
     const prevEstado = pedido.estado
     setUpdating(true)
     setPedido((p) => ({ ...p, estado: next }))
@@ -51,6 +57,19 @@ const PedidoDetail = () => {
     } finally {
       setUpdating(false)
     }
+  }
+
+  const cambiarEstado = (next) => {
+    if (next === 'cancelado') {
+      setCancelConfirm(true)
+      return
+    }
+    aplicarCambioEstado(next)
+  }
+
+  const confirmarCancelacion = async () => {
+    setCancelConfirm(false)
+    await aplicarCambioEstado('cancelado')
   }
 
   if (loading) {
@@ -149,6 +168,18 @@ const PedidoDetail = () => {
           <p className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.85rem' }}>{pedido.notas}</p>
         </section>
       )}
+
+      <ConfirmDialog
+        open={cancelConfirm}
+        title="Cancelar venta"
+        message={mensajeCancelacion(pedido)}
+        confirmLabel="Cancelar venta"
+        loadingLabel="Cancelando…"
+        cancelLabel="Volver"
+        loading={updating}
+        onConfirm={confirmarCancelacion}
+        onCancel={() => setCancelConfirm(false)}
+      />
     </div>
   )
 }

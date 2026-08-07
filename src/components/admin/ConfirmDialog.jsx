@@ -11,6 +11,7 @@ export const ConfirmDialog = ({
   title = 'Confirmar acción',
   message = '¿Estás segura? Esta acción no se puede deshacer.',
   confirmLabel = 'Eliminar',
+  loadingLabel = 'Eliminando…',
   cancelLabel = 'Cancelar',
   loading = false,
   onConfirm,
@@ -122,7 +123,7 @@ export const ConfirmDialog = ({
               padding: '0.85rem 1.5rem',
             }}
           >
-            {loading ? 'Eliminando…' : confirmLabel}
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>
