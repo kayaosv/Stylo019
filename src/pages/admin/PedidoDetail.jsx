@@ -115,7 +115,11 @@ const PedidoDetail = () => {
               <div>
                 <p className="font-serif text-[var(--color-ink)]" style={{ fontSize: '0.95rem' }}>{it.producto_nombre}</p>
                 <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.75rem' }}>
-                  {[it.color_label, `Talla ${it.talla}`].filter(Boolean).join(' — ')} · {it.cantidad} × {Number(it.precio_unitario).toFixed(2)} €
+                  {[it.color_label, `Talla ${it.talla}`].filter(Boolean).join(' — ')} · {it.cantidad} ×{' '}
+                  {it.precio_original != null && (
+                    <span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{Number(it.precio_original).toFixed(2)} € </span>
+                  )}
+                  {Number(it.precio_unitario).toFixed(2)} €
                 </p>
               </div>
               <span className="font-serif">{(it.cantidad * Number(it.precio_unitario)).toFixed(2)} €</span>

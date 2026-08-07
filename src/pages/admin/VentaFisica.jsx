@@ -2,7 +2,14 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { normalizeColores } from '@/lib/colores'
 import { getPrecioEfectivo } from '@/lib/precio'
+import { TALLA_SETS } from '@/lib/tallas'
 import { TicketVenta } from '@/components/admin/TicketVenta'
+
+// A barcode scanned but not found in the catalog can still be sold: it
+// creates a hidden producto (activo: false, categoria 'venta_rapida') on
+// the fly so the sale reuses the exact same stock/ticket/Odoo pipeline as
+// any other item, instead of a separate "free line" concept.
+const TALLA_UNICA = TALLA_SETS.unica[0]
 
 const BARCODE_FORMATS = ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code']
 
@@ -52,7 +59,7 @@ const VentaFisica = () => {
   const [resultados, setResultados] = useState([])
   const [buscando, setBuscando] = useState(false)
   const [cart, setCart] = useState([])
-  const [notFound, setNotFound] = useState(false)
+  const [notFound, setNotFound] = useState(null) // holds the scanned code that wasn't found, or null
   const [cameraMode, setCameraMode] = useState(false)
   const [cameraError, setCameraError] = useState(null)
   const [metodoPago, setMetodoPago] = useState(null)
@@ -64,6 +71,18 @@ const VentaFisica = () => {
   // pick a color (only when the product has variants) then a size.
   const [colorStep, setColorStep] = useState(null) // { producto, colores }
   const [sizeStep, setSizeStep] = useState(null) // { producto, colorId, colorLabel, tallas }
+
+  // Manual price/discount editor for a cart line.
+  const [discountStep, setDiscountStep] = useState(null) // { key, precioOriginal }
+  const [discountValor, setDiscountValor] = useState('')
+
+  // "Alta rápida": sell a barcode that isn't in the catalog yet.
+  const [quickAdd, setQuickAdd] = useState(null) // { codigo }
+  const [quickAddNombre, setQuickAddNombre] = useState('')
+  const [quickAddPrecio, setQuickAddPrecio] = useState('')
+  const [quickAddCantidad, setQuickAddCantidad] = useState('1')
+  const [quickAddSaving, setQuickAddSaving] = useState(false)
+  const [quickAddError, setQuickAddError] = useState(null)
 
   useEffect(() => {
     if (!cameraMode && !ultimaVenta) inputRef.current?.focus()
@@ -139,7 +158,7 @@ const VentaFisica = () => {
   const buscarPorCodigo = useCallback(async (raw) => {
     const clean = (raw ?? '').trim()
     if (!clean) return
-    setNotFound(false)
+    setNotFound(null)
     setError(null)
 
     const { data, error: err } = await supabase.rpc('buscar_por_barcode', { p_barcode: clean })
@@ -150,11 +169,15 @@ const VentaFisica = () => {
     const hit = Array.isArray(data) ? data[0] : data
 
     if (!hit?.producto_id) {
-      setNotFound(true)
+      setNotFound(clean)
       setCodigo('')
       return
     }
-    if (!hit.activo) {
+    // 'venta_rapida' items are created with activo:false on purpose (that's
+    // what keeps them out of the public catalog, see abrirAltaRapida) — they
+    // stay sellable here so scanning the same code again (e.g. a second
+    // unit) works.
+    if (!hit.activo && hit.categoria !== 'venta_rapida') {
       setError(`"${hit.producto_nombre}" ya no está disponible.`)
       setCodigo('')
       return
@@ -268,10 +291,92 @@ const VentaFisica = () => {
       }
       return [...prev, {
         key, productoId: producto.id, productoNombre: producto.nombre,
-        colorId, colorLabel, talla, cantidad: 1, precioUnitario, imagen, stockDisponible,
+        colorId, colorLabel, talla, cantidad: 1, precioUnitario, precioOriginal: precioUnitario, imagen, stockDisponible,
       }]
     })
     setSizeStep(null)
+  }
+
+  // precioOriginal never changes after the line is created — it's always the
+  // catalog price, so re-opening the editor always starts from the real
+  // price instead of compounding a previous discount.
+  const abrirDescuento = (l) => {
+    setDiscountStep({ key: l.key, precioOriginal: l.precioOriginal })
+    setDiscountValor(l.precioUnitario.toFixed(2))
+  }
+
+  const aplicarDescuento = () => {
+    if (!discountStep) return
+    const valor = Number(discountValor)
+    if (!Number.isFinite(valor) || valor < 0 || valor > discountStep.precioOriginal) return
+    setCart((prev) =>
+      prev.map((l) => (l.key === discountStep.key ? { ...l, precioUnitario: valor } : l))
+    )
+    setDiscountStep(null)
+  }
+
+  const quitarDescuento = () => {
+    if (!discountStep) return
+    setCart((prev) =>
+      prev.map((l) => (l.key === discountStep.key ? { ...l, precioUnitario: l.precioOriginal } : l))
+    )
+    setDiscountStep(null)
+  }
+
+  const abrirAltaRapida = (codigo) => {
+    setQuickAdd({ codigo })
+    setQuickAddNombre('')
+    setQuickAddPrecio('')
+    setQuickAddCantidad('1')
+    setQuickAddError(null)
+    setNotFound(null)
+  }
+
+  const guardarAltaRapida = async () => {
+    const nombre = quickAddNombre.trim()
+    const precio = Number(quickAddPrecio)
+    const cantidad = Math.max(1, Math.floor(Number(quickAddCantidad) || 1))
+    if (!nombre) {
+      setQuickAddError('Escribí una descripción.')
+      return
+    }
+    if (!Number.isFinite(precio) || precio <= 0) {
+      setQuickAddError('El precio tiene que ser mayor que 0.')
+      return
+    }
+    setQuickAddSaving(true)
+    setQuickAddError(null)
+    const { data, error: err } = await supabase
+      .from('productos')
+      .insert({
+        nombre,
+        precio,
+        categoria: 'venta_rapida',
+        activo: false,
+        barcode: quickAdd.codigo,
+        tipo_talla: 'unica',
+        tallas: { [TALLA_UNICA]: cantidad },
+      })
+      .select()
+      .single()
+    setQuickAddSaving(false)
+    if (err) {
+      setQuickAddError(
+        err.code === '23505' ? 'Ese código de barras ya está en uso.' : 'No se pudo guardar. Inténtalo otra vez.'
+      )
+      return
+    }
+
+    const key = `${data.id}:base:${TALLA_UNICA}`
+    setCart((prev) => [
+      ...prev,
+      {
+        key, productoId: data.id, productoNombre: data.nombre,
+        colorId: null, colorLabel: null, talla: TALLA_UNICA, cantidad,
+        precioUnitario: precio, precioOriginal: precio, imagen: null, stockDisponible: cantidad,
+      },
+    ])
+    setQuickAdd(null)
   }
 
   const cambiarCantidad = (key, delta) => {
@@ -301,6 +406,7 @@ const VentaFisica = () => {
           color_id: l.colorId,
           talla: l.talla,
           cantidad: l.cantidad,
+          precio_manual: l.precioUnitario !== l.precioOriginal ? l.precioUnitario : null,
         })),
         p_metodo_pago: metodoPago,
       })
@@ -393,9 +499,19 @@ const VentaFisica = () => {
             )}
 
             {notFound && (
-              <p className="font-sans" style={{ fontSize: '0.78rem', color: '#c0392b', marginTop: '0.75rem' }}>
-                Código no encontrado — ningún producto o color tiene ese código de barras.
-              </p>
+              <div style={{ marginTop: '0.75rem' }}>
+                <p className="font-sans" style={{ fontSize: '0.78rem', color: '#c0392b' }}>
+                  Código no encontrado — ningún producto o color tiene ese código de barras.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => abrirAltaRapida(notFound)}
+                  className="font-sans"
+                  style={{ fontSize: '0.75rem', marginTop: '0.5rem', padding: '0.5rem 0.85rem', border: '1px solid var(--color-surface)' }}
+                >
+                  + Registrar y vender igual
+                </button>
+              </div>
             )}
           </div>
 
@@ -447,12 +563,25 @@ const VentaFisica = () => {
                       <div style={{ minWidth: 0 }}>
                         <p className="font-serif text-[var(--color-ink)]" style={{ fontSize: '0.95rem' }}>{l.productoNombre}</p>
                         <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.75rem' }}>
-                          {[l.colorLabel, `Talla ${l.talla}`].filter(Boolean).join(' — ')} · {l.precioUnitario.toFixed(2)} € / u
+                          {[l.colorLabel, `Talla ${l.talla}`].filter(Boolean).join(' — ')} ·{' '}
+                          {l.precioUnitario !== l.precioOriginal && (
+                            <span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{l.precioOriginal.toFixed(2)} € </span>
+                          )}
+                          {l.precioUnitario.toFixed(2)} € / u
                           {atMax && <span style={{ color: 'var(--color-accent-ink)' }}> · Última unidad</span>}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center" style={{ gap: '0.5rem', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => abrirDescuento(l)}
+                        aria-label="Editar precio"
+                        title="Editar precio / aplicar descuento"
+                        style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--color-surface)', fontSize: '0.75rem' }}
+                      >
+                        %
+                      </button>
                       <button type="button" onClick={() => cambiarCantidad(l.key, -1)} style={{ padding: '0.25rem 0.6rem', border: '1px solid var(--color-surface)' }}>−</button>
                       <span className="font-serif" style={{ minWidth: '1.5rem', textAlign: 'center' }}>{l.cantidad}</span>
                       <button
@@ -567,6 +696,104 @@ const VentaFisica = () => {
               ))}
             </div>
           )}
+        </Modal>
+      )}
+
+      {discountStep && (
+        <Modal onClose={() => setDiscountStep(null)} title="Precio de esta línea">
+          <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.78rem', marginBottom: '0.85rem' }}>
+            Precio de catálogo: {discountStep.precioOriginal.toFixed(2)} €
+          </p>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            max={discountStep.precioOriginal}
+            value={discountValor}
+            onChange={(e) => setDiscountValor(e.target.value)}
+            autoFocus
+            className="w-full bg-[var(--color-base)] font-serif text-[var(--color-ink)] outline-none"
+            style={{ border: '1px solid var(--color-surface)', padding: '0.85rem 1rem', fontSize: '1.15rem', marginBottom: '0.85rem' }}
+          />
+          <div className="flex flex-wrap" style={{ gap: '0.5rem', marginBottom: '1.1rem' }}>
+            {[10, 20, 30, 50].map((pct) => (
+              <button
+                key={pct}
+                type="button"
+                onClick={() => setDiscountValor((discountStep.precioOriginal * (1 - pct / 100)).toFixed(2))}
+                className="font-sans text-[var(--color-muted)]"
+                style={{ fontSize: '0.75rem', padding: '0.45rem 0.75rem', border: '1px solid var(--color-surface)' }}
+              >
+                −{pct}%
+              </button>
+            ))}
+          </div>
+          <div className="flex" style={{ gap: '0.6rem' }}>
+            <button
+              type="button"
+              onClick={aplicarDescuento}
+              className="flex-1 bg-[var(--color-ink)] font-sans text-[var(--color-paper)]"
+              style={{ fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '0.85rem' }}
+            >
+              Aplicar
+            </button>
+            <button
+              type="button"
+              onClick={quitarDescuento}
+              className="font-sans text-[var(--color-muted)]"
+              style={{ fontSize: '0.78rem', padding: '0.85rem 1rem', border: '1px solid var(--color-surface)' }}
+            >
+              Sin descuento
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {quickAdd && (
+        <Modal onClose={() => setQuickAdd(null)} title="Registrar y vender">
+          <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.78rem', marginBottom: '0.85rem' }}>
+            Código {quickAdd.codigo} — no existe en el catálogo online. Se guarda oculto (no se muestra en la tienda) y queda disponible para venderlo desde acá.
+          </p>
+          <input
+            value={quickAddNombre}
+            onChange={(e) => setQuickAddNombre(e.target.value)}
+            placeholder="Descripción (ej: Bufanda gris)"
+            autoFocus
+            className="w-full bg-[var(--color-base)] font-sans text-[var(--color-ink)] outline-none"
+            style={{ border: '1px solid var(--color-surface)', padding: '0.85rem 1rem', fontSize: '0.9rem', marginBottom: '0.65rem' }}
+          />
+          <div className="flex" style={{ gap: '0.65rem', marginBottom: '0.85rem' }}>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={quickAddPrecio}
+              onChange={(e) => setQuickAddPrecio(e.target.value)}
+              placeholder="Precio €"
+              className="flex-1 bg-[var(--color-base)] font-serif text-[var(--color-ink)] outline-none"
+              style={{ border: '1px solid var(--color-surface)', padding: '0.85rem 1rem', fontSize: '1rem' }}
+            />
+            <input
+              type="number"
+              step="1"
+              min="1"
+              value={quickAddCantidad}
+              onChange={(e) => setQuickAddCantidad(e.target.value)}
+              placeholder="Cantidad"
+              style={{ width: '6rem', border: '1px solid var(--color-surface)', padding: '0.85rem 1rem', fontSize: '1rem' }}
+              className="bg-[var(--color-base)] font-serif text-[var(--color-ink)] outline-none"
+            />
+          </div>
+          {quickAddError && <p className="font-sans" style={{ fontSize: '0.78rem', color: '#c0392b', marginBottom: '0.85rem' }}>{quickAddError}</p>}
+          <button
+            type="button"
+            disabled={quickAddSaving}
+            onClick={guardarAltaRapida}
+            className="w-full bg-[var(--color-ink)] font-sans text-[var(--color-paper)] disabled:opacity-50"
+            style={{ fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '0.9rem' }}
+          >
+            {quickAddSaving ? 'Guardando…' : 'Agregar al carrito'}
+          </button>
         </Modal>
       )}
     </div>

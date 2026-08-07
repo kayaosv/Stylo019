@@ -63,13 +63,18 @@ export const TicketVenta = ({ venta, onNuevaVenta }) => (
       {venta.items.map((l) => (
         <div key={l.key} style={{ marginBottom: '0.5rem' }}>
           <div className="flex items-center justify-between">
-            <span>{l.cantidad} × {l.nombre}</span>
+            <span>{l.cantidad} × {l.productoNombre}</span>
             <span>{(l.precioUnitario * l.cantidad).toFixed(2)} €</span>
           </div>
           {(l.colorLabel || l.talla) && (
             <span style={{ color: 'var(--color-muted)', fontSize: '0.72rem' }}>
               {[l.colorLabel, `Talla ${l.talla}`].filter(Boolean).join(' — ')}
             </span>
+          )}
+          {l.precioOriginal != null && l.precioUnitario !== l.precioOriginal && (
+            <div style={{ color: 'var(--color-muted)', fontSize: '0.72rem' }}>
+              Descuento aplicado (antes {l.precioOriginal.toFixed(2)} € / u)
+            </div>
           )}
         </div>
       ))}
