@@ -141,6 +141,14 @@ const Etiquetas = () => {
                   checked={salieronBien.has(item.barcode)}
                   onChange={() => toggleSalioBien(item.barcode)}
                 />
+                <span
+                  className="shrink-0 overflow-hidden"
+                  style={{ width: '2.5rem', height: '2.5rem', background: 'var(--color-surface)' }}
+                >
+                  {item.imagen && (
+                    <img src={item.imagen} alt="" loading="lazy" className="w-full h-full object-cover" />
+                  )}
+                </span>
                 <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.82rem' }}>
                   {item.productoNombre}
                   {item.colorLabel ? ` · ${item.colorLabel}` : ''}
@@ -301,6 +309,14 @@ const Etiquetas = () => {
                       style={{ gap: '0.65rem', padding: '0.5rem 0.75rem', border: '1px solid var(--color-surface)', cursor: 'pointer' }}
                     >
                       <input type="checkbox" checked={seleccion.has(claveDe(item))} onChange={() => toggle(item)} />
+                      <span
+                        className="shrink-0 overflow-hidden"
+                        style={{ width: '2.5rem', height: '2.5rem', background: 'var(--color-surface)' }}
+                      >
+                        {item.imagen && (
+                          <img src={item.imagen} alt="" loading="lazy" className="w-full h-full object-cover" />
+                        )}
+                      </span>
                       <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.82rem' }}>
                         {item.colorLabel ?? 'Base (sin color)'}
                       </span>

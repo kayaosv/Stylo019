@@ -23,7 +23,7 @@ export const fetchEtiquetasPendientes = async () => {
   const [{ data: productos, error: prodErr }, { data: impresas, error: impErr }] = await Promise.all([
     supabase
       .from('productos')
-      .select('id, nombre, activo, barcode, colores, tallas')
+      .select('id, nombre, activo, barcode, colores, tallas, imagenes')
       .eq('activo', true),
     supabase.from('etiquetas_impresas').select('barcode'),
   ])
@@ -34,14 +34,14 @@ export const fetchEtiquetasPendientes = async () => {
   const impresasSet = new Set((impresas ?? []).map((r) => r.barcode))
   const pendientes = []
 
-  const push = (p, colorId, colorLabel, barcode, tallas) => {
+  const push = (p, colorId, colorLabel, barcode, tallas, imagen) => {
     if (estaAgotado(tallas)) return // sin stock real -- nada que etiquetar todavia
     if (barcode) {
       if (!impresasSet.has(barcode)) {
-        pendientes.push({ estado: 'sin_imprimir', barcode, productoId: p.id, productoNombre: p.nombre, colorId, colorLabel })
+        pendientes.push({ estado: 'sin_imprimir', barcode, productoId: p.id, productoNombre: p.nombre, colorId, colorLabel, imagen })
       }
     } else {
-      pendientes.push({ estado: 'sin_codigo', barcode: null, productoId: p.id, productoNombre: p.nombre, colorId, colorLabel })
+      pendientes.push({ estado: 'sin_codigo', barcode: null, productoId: p.id, productoNombre: p.nombre, colorId, colorLabel, imagen })
     }
   }
 
@@ -49,10 +49,14 @@ export const fetchEtiquetasPendientes = async () => {
     const colores = p.colores ?? []
     if (colores.length > 0) {
       for (const c of colores) {
-        push(p, c.id, c.label ?? c.id, c.barcode ?? null, c.tallas ?? p.tallas ?? {})
+        // Mismo fallback que Producto.jsx/ItemCarrito: foto propia del color
+        // si tiene, si no la base del producto -- para no dejar la etiqueta
+        // sin ninguna imagen de referencia.
+        const imagen = c.imagenes?.[0] ?? p.imagenes?.[0] ?? null
+        push(p, c.id, c.label ?? c.id, c.barcode ?? null, c.tallas ?? p.tallas ?? {}, imagen)
       }
     } else {
-      push(p, null, null, p.barcode ?? null, p.tallas ?? {})
+      push(p, null, null, p.barcode ?? null, p.tallas ?? {}, p.imagenes?.[0] ?? null)
     }
   }
 
