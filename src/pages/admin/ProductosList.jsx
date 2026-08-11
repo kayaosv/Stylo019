@@ -7,6 +7,8 @@ import {
 } from '@/services/productos'
 import { fetchCategorias } from '@/services/categorias'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
+import { ImpresionEtiquetas } from '@/components/admin/ImpresionEtiquetas'
+import { claveDe } from '@/services/etiquetas'
 
 const TALLAS = ['XS', 'S', 'M', 'L', 'XL']
 
@@ -20,6 +22,25 @@ const formatPrecio = (n) =>
     minimumFractionDigits: 0,
   }).format(Number(n) || 0)
 
+// Un item por color (o uno solo "base" si el producto no usa colores) para
+// alimentar el mismo flujo de impresión que /admin/etiquetas — mismo shape
+// que fetchEtiquetasPendientes, pero sin filtrar por stock: aquí es el
+// admin pidiendo explícitamente reimprimir/generar, no un lote automático.
+const itemsDeProducto = (p) => {
+  const colores = p.colores ?? []
+  if (colores.length === 0) {
+    return [{ productoId: p.id, productoNombre: p.nombre, colorId: null, colorLabel: null, barcode: p.barcode ?? null, imagen: p.imagenes?.[0] ?? null }]
+  }
+  return colores.map((c) => ({
+    productoId: p.id,
+    productoNombre: p.nombre,
+    colorId: c.id,
+    colorLabel: c.label ?? c.id,
+    barcode: c.barcode ?? null,
+    imagen: c.imagenes?.[0] ?? p.imagenes?.[0] ?? null,
+  }))
+}
+
 const ProductosList = () => {
   const [productos, setProductos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -31,6 +52,31 @@ const ProductosList = () => {
 
   const [confirmTarget, setConfirmTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [etiquetaProducto, setEtiquetaProducto] = useState(null)
+  const [etiquetaSeleccion, setEtiquetaSeleccion] = useState(new Set())
+  const [imprimiendo, setImprimiendo] = useState(null)
+
+  const abrirEtiquetas = (p) => {
+    setEtiquetaProducto(p)
+    setEtiquetaSeleccion(new Set(itemsDeProducto(p).map(claveDe)))
+  }
+
+  const cerrarEtiquetas = () => {
+    setEtiquetaProducto(null)
+    setEtiquetaSeleccion(new Set())
+    setImprimiendo(null)
+  }
+
+  const toggleEtiquetaItem = (item) => {
+    const key = claveDe(item)
+    setEtiquetaSeleccion((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const loadProductos = useCallback(async () => {
     setLoading(true)
@@ -359,6 +405,20 @@ const ProductosList = () => {
                       />
                     </div>
                     <div className="flex items-center" style={{ gap: '0.35rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => abrirEtiquetas(p)}
+                        className="font-sans text-[var(--color-ink)]"
+                        style={{
+                          fontSize: '0.65rem',
+                          letterSpacing: '0.22em',
+                          textTransform: 'uppercase',
+                          padding: '0.5rem 0.75rem',
+                          border: '1px solid var(--color-surface)',
+                        }}
+                      >
+                        Etiqueta
+                      </button>
                       <Link
                         to={`/admin/productos/${p.id}`}
                         className="font-sans text-[var(--color-ink)]"
@@ -482,6 +542,20 @@ const ProductosList = () => {
                 </div>
 
                 <div className="flex items-center justify-end" style={{ gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => abrirEtiquetas(p)}
+                    className="font-sans text-[var(--color-ink)] hover:text-[var(--color-accent)]"
+                    style={{
+                      fontSize: '0.7rem',
+                      letterSpacing: '0.22em',
+                      textTransform: 'uppercase',
+                      padding: '0.55rem 0.85rem',
+                      border: '1px solid var(--color-surface)',
+                    }}
+                  >
+                    Etiqueta
+                  </button>
                   <Link
                     to={`/admin/productos/${p.id}`}
                     className="font-sans text-[var(--color-ink)] hover:text-[var(--color-accent)]"
@@ -528,6 +602,90 @@ const ProductosList = () => {
         onCancel={() => setConfirmTarget(null)}
         onConfirm={handleDelete}
       />
+
+      {etiquetaProducto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(10, 37, 64, 0.55)', padding: '1.5rem' }}
+          onClick={cerrarEtiquetas}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-[var(--color-paper)]"
+            style={{ padding: '2rem', border: '1px solid var(--color-surface)', maxHeight: '85vh', overflowY: 'auto' }}
+          >
+            {imprimiendo ? (
+              <ImpresionEtiquetas items={imprimiendo} onClose={() => setImprimiendo(null)} onDone={cerrarEtiquetas} />
+            ) : (
+              <div className="flex flex-col" style={{ gap: '1.25rem' }}>
+                <div>
+                  <span className="label-xs text-[var(--color-muted)]" style={{ letterSpacing: '0.25em' }}>
+                    Imprimir etiqueta
+                  </span>
+                  <h3 className="font-serif text-[var(--color-ink)]" style={{ fontSize: '1.5rem', fontWeight: 300, marginTop: '0.25rem' }}>
+                    {etiquetaProducto.nombre}
+                  </h3>
+                </div>
+
+                <div className="flex flex-col" style={{ gap: '0.4rem' }}>
+                  {itemsDeProducto(etiquetaProducto).map((item) => (
+                    <label
+                      key={claveDe(item)}
+                      className="flex items-center transition-colors hover:bg-[var(--color-base)]"
+                      style={{ gap: '0.65rem', padding: '0.5rem 0.75rem', border: '1px solid var(--color-surface)', cursor: 'pointer' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={etiquetaSeleccion.has(claveDe(item))}
+                        onChange={() => toggleEtiquetaItem(item)}
+                      />
+                      <span
+                        className="shrink-0 overflow-hidden"
+                        style={{ width: '2.5rem', height: '2.5rem', background: 'var(--color-surface)' }}
+                      >
+                        {item.imagen && (
+                          <img src={item.imagen} alt="" loading="lazy" className="w-full h-full object-cover" />
+                        )}
+                      </span>
+                      <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.82rem' }}>
+                        {item.colorLabel ?? 'Base (sin color)'}
+                      </span>
+                      <span
+                        className="font-sans text-[var(--color-muted)]"
+                        style={{ fontSize: '0.72rem', marginLeft: 'auto', letterSpacing: '0.03em' }}
+                      >
+                        {item.barcode ?? 'Sin código'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-end" style={{ gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={cerrarEtiquetas}
+                    className="font-sans text-[var(--color-muted)] hover:text-[var(--color-ink)]"
+                    style={{ fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', padding: '0.85rem 1rem' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={etiquetaSeleccion.size === 0}
+                    onClick={() =>
+                      setImprimiendo(itemsDeProducto(etiquetaProducto).filter((i) => etiquetaSeleccion.has(claveDe(i))))
+                    }
+                    className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
+                    style={{ fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', padding: '0.85rem 1.5rem' }}
+                  >
+                    Imprimir seleccionadas ({etiquetaSeleccion.size})
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

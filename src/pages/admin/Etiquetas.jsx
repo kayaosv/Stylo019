@@ -1,15 +1,13 @@
 import { useEffect, useState, useMemo } from 'react'
-import { fetchEtiquetasPendientes, marcarEtiquetasImpresas, generarYGuardarBarcode, claveDe } from '@/services/etiquetas'
-import { BarcodeImage } from '@/components/admin/BarcodeImage'
+import { fetchEtiquetasPendientes, claveDe } from '@/services/etiquetas'
+import { ImpresionEtiquetas } from '@/components/admin/ImpresionEtiquetas'
 
 const Etiquetas = () => {
   const [pendientes, setPendientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [seleccion, setSeleccion] = useState(new Set())
-  const [itemsImprimir, setItemsImprimir] = useState(null)
-  const [resolviendo, setResolviendo] = useState(false)
-  const [guardando, setGuardando] = useState(false)
+  const [imprimiendo, setImprimiendo] = useState(null)
 
   const cargar = async () => {
     setLoading(true)
@@ -55,42 +53,8 @@ const Etiquetas = () => {
     )
   }
 
-  // Any item still missing a code gets a real one generated + saved here,
-  // right before the print batch — that way the label that comes out
-  // always shows a real, already-persisted code, never a preview.
-  const irAImprimir = async () => {
-    const seleccionados = pendientes.filter((i) => seleccion.has(claveDe(i)))
-    setResolviendo(true)
-    setError(null)
-    try {
-      const resueltos = []
-      for (const item of seleccionados) {
-        if (item.estado === 'sin_codigo') {
-          resueltos.push(await generarYGuardarBarcode(item))
-        } else {
-          resueltos.push(item)
-        }
-      }
-      setItemsImprimir(resueltos)
-    } catch (err) {
-      setError(`No se pudo generar un código: ${err.message}`)
-    } finally {
-      setResolviendo(false)
-    }
-  }
-
-  // Optimistic — same posture as the rest of the admin (see odoo-sync,
-  // crear_venta_tpv): clicking "Imprimir" is treated as the real action,
-  // there's no reliable cross-browser way to detect whether the OS print
-  // dialog was actually completed vs. cancelled. Worst case if cancelled:
-  // the item silently drops off "pendientes" and has to be reprinted by
-  // hand later — low-stakes, not a stock or money operation.
-  const confirmarImpresion = async () => {
-    setGuardando(true)
-    await marcarEtiquetasImpresas(itemsImprimir)
-    setGuardando(false)
-    setItemsImprimir(null)
-    cargar()
+  const irAImprimir = () => {
+    setImprimiendo(pendientes.filter((i) => seleccion.has(claveDe(i))))
   }
 
   if (loading) {
@@ -101,65 +65,16 @@ const Etiquetas = () => {
     )
   }
 
-  if (itemsImprimir) {
+  if (imprimiendo) {
     return (
-      <div className="flex flex-col items-center" style={{ gap: '1.5rem' }}>
-        <style>{`
-          @media print {
-            body * { visibility: hidden; }
-            #etiquetas-print, #etiquetas-print * { visibility: visible; }
-            #etiquetas-print { position: absolute; top: 0; left: 0; width: 80mm; }
-            .etiquetas-no-print { display: none !important; }
-          }
-        `}</style>
-
-        <div className="etiquetas-no-print flex items-center" style={{ gap: '0.75rem' }}>
-          <button
-            type="button"
-            disabled={guardando}
-            onClick={async () => {
-              window.print()
-              await confirmarImpresion()
-            }}
-            className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
-            style={{ fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', padding: '0.95rem 1.75rem' }}
-          >
-            Imprimir {itemsImprimir.length} etiqueta{itemsImprimir.length === 1 ? '' : 's'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setItemsImprimir(null)}
-            className="font-sans text-[var(--color-muted)] hover:text-[var(--color-ink)]"
-            style={{ fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', padding: '0.95rem 1.25rem', border: '1px solid var(--color-surface)' }}
-          >
-            Volver
-          </button>
-        </div>
-
-        <div
-          id="etiquetas-print"
-          className="bg-[var(--color-paper)] font-sans text-[var(--color-ink)]"
-          style={{ width: '320px' }}
-        >
-          {itemsImprimir.map((item) => (
-            <div
-              key={item.barcode}
-              className="flex flex-col items-center"
-              style={{ padding: '0.7rem 0', borderBottom: '1px dashed var(--color-surface)' }}
-            >
-              <p className="font-serif" style={{ fontSize: '0.85rem', textAlign: 'center', marginBottom: '0.15rem' }}>
-                {item.productoNombre}
-              </p>
-              {item.colorLabel && (
-                <p style={{ fontSize: '0.68rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>
-                  {item.colorLabel}
-                </p>
-              )}
-              <BarcodeImage value={item.barcode} height={38} width={1.5} fontSize={10} />
-            </div>
-          ))}
-        </div>
-      </div>
+      <ImpresionEtiquetas
+        items={imprimiendo}
+        onClose={() => setImprimiendo(null)}
+        onDone={() => {
+          setImprimiendo(null)
+          cargar()
+        }}
+      />
     )
   }
 
@@ -182,12 +97,12 @@ const Etiquetas = () => {
         {pendientes.length > 0 && (
           <button
             type="button"
-            disabled={seleccion.size === 0 || resolviendo}
+            disabled={seleccion.size === 0}
             onClick={irAImprimir}
             className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
             style={{ fontSize: '0.78rem', letterSpacing: '0.15em', textTransform: 'uppercase', padding: '0.9rem 1.5rem' }}
           >
-            {resolviendo ? 'Generando códigos…' : `Imprimir seleccionadas (${seleccion.size})`}
+            Imprimir seleccionadas ({seleccion.size})
           </button>
         )}
       </div>
@@ -223,6 +138,14 @@ const Etiquetas = () => {
                       style={{ gap: '0.65rem', padding: '0.5rem 0.75rem', border: '1px solid var(--color-surface)', cursor: 'pointer' }}
                     >
                       <input type="checkbox" checked={seleccion.has(claveDe(item))} onChange={() => toggle(item)} />
+                      <span
+                        className="shrink-0 overflow-hidden"
+                        style={{ width: '2.5rem', height: '2.5rem', background: 'var(--color-surface)' }}
+                      >
+                        {item.imagen && (
+                          <img src={item.imagen} alt="" loading="lazy" className="w-full h-full object-cover" />
+                        )}
+                      </span>
                       <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.82rem' }}>
                         {item.colorLabel ?? 'Base (sin color)'}
                       </span>
