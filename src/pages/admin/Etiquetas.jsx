@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { fetchEtiquetasPendientes, claveDe } from '@/services/etiquetas'
 import { ImpresionEtiquetas } from '@/components/admin/ImpresionEtiquetas'
+import { BuscarEtiqueta } from '@/components/admin/BuscarEtiqueta'
 
 const Etiquetas = () => {
   const [pendientes, setPendientes] = useState([])
@@ -112,6 +113,8 @@ const Etiquetas = () => {
           {error}
         </p>
       )}
+
+      <BuscarEtiqueta />
 
       {pendientes.length > 0 && (
         <div className="bg-[var(--color-paper)]" style={{ border: '1px solid var(--color-surface)', padding: '1.5rem' }}>

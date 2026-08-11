@@ -7,6 +7,44 @@ import { generarBarcodeUnico } from '@/lib/barcode'
 // itself doubles as the key everywhere else (selection, print, log table).
 export const claveDe = (item) => item.barcode ?? `${item.productoId}:${item.colorId ?? 'base'}`
 
+// Un item por color (o uno solo "base" si el producto no usa colores) listo
+// para el flujo de impresión — mismo shape que fetchEtiquetasPendientes,
+// pero sin filtrar por stock ni por 'activo': se usa para impresión manual
+// (botón "Etiqueta" en Productos, buscador de /admin/etiquetas), donde es
+// el admin pidiendo explícitamente reimprimir/generar, no un lote automático.
+export const itemsDeProducto = (p) => {
+  const colores = p.colores ?? []
+  if (colores.length === 0) {
+    return [{ productoId: p.id, productoNombre: p.nombre, colorId: null, colorLabel: null, barcode: p.barcode ?? null, imagen: p.imagenes?.[0] ?? null }]
+  }
+  return colores.map((c) => ({
+    productoId: p.id,
+    productoNombre: p.nombre,
+    colorId: c.id,
+    colorLabel: c.label ?? c.id,
+    barcode: c.barcode ?? null,
+    imagen: c.imagenes?.[0] ?? p.imagenes?.[0] ?? null,
+  }))
+}
+
+/**
+ * Búsqueda por nombre para el buscador de /admin/etiquetas. Deliberadamente
+ * SIN filtrar por `activo` (a diferencia del buscador del TPV) — un
+ * producto inactivo puede tener stock físico real esperando etiqueta, y
+ * excluirlo aquí repetiría el mismo punto ciego que ya tiene la lista
+ * automática de pendientes.
+ */
+export const buscarProductosPorNombre = async (termino) => {
+  const term = termino.trim()
+  if (term.length < 2) return []
+  const { data } = await supabase
+    .from('productos')
+    .select('id, nombre, activo, barcode, colores, imagenes')
+    .ilike('nombre', `%${term}%`)
+    .limit(8)
+  return data ?? []
+}
+
 /**
  * Every product/color variant with real stock (stock 0 = nothing physical
  * to label yet, excluded) that either:
