@@ -8,7 +8,7 @@ import {
 import { fetchCategorias } from '@/services/categorias'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
 import { ImpresionEtiquetas } from '@/components/admin/ImpresionEtiquetas'
-import { claveDe } from '@/services/etiquetas'
+import { claveDe, itemsDeProducto } from '@/services/etiquetas'
 
 const TALLAS = ['XS', 'S', 'M', 'L', 'XL']
 
@@ -21,25 +21,6 @@ const formatPrecio = (n) =>
     currency: 'EUR',
     minimumFractionDigits: 0,
   }).format(Number(n) || 0)
-
-// Un item por color (o uno solo "base" si el producto no usa colores) para
-// alimentar el mismo flujo de impresión que /admin/etiquetas — mismo shape
-// que fetchEtiquetasPendientes, pero sin filtrar por stock: aquí es el
-// admin pidiendo explícitamente reimprimir/generar, no un lote automático.
-const itemsDeProducto = (p) => {
-  const colores = p.colores ?? []
-  if (colores.length === 0) {
-    return [{ productoId: p.id, productoNombre: p.nombre, colorId: null, colorLabel: null, barcode: p.barcode ?? null, imagen: p.imagenes?.[0] ?? null }]
-  }
-  return colores.map((c) => ({
-    productoId: p.id,
-    productoNombre: p.nombre,
-    colorId: c.id,
-    colorLabel: c.label ?? c.id,
-    barcode: c.barcode ?? null,
-    imagen: c.imagenes?.[0] ?? p.imagenes?.[0] ?? null,
-  }))
-}
 
 const ProductosList = () => {
   const [productos, setProductos] = useState([])
