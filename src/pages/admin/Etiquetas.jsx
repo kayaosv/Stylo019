@@ -8,6 +8,8 @@ const Etiquetas = () => {
   const [error, setError] = useState(null)
   const [seleccion, setSeleccion] = useState(new Set())
   const [itemsImprimir, setItemsImprimir] = useState(null)
+  const [confirmando, setConfirmando] = useState(false)
+  const [salieronBien, setSalieronBien] = useState(new Set())
   const [resolviendo, setResolviendo] = useState(false)
   const [guardando, setGuardando] = useState(false)
 
@@ -79,17 +81,27 @@ const Etiquetas = () => {
     }
   }
 
-  // Optimistic — same posture as the rest of the admin (see odoo-sync,
-  // crear_venta_tpv): clicking "Imprimir" is treated as the real action,
-  // there's no reliable cross-browser way to detect whether the OS print
-  // dialog was actually completed vs. cancelled. Worst case if cancelled:
-  // the item silently drops off "pendientes" and has to be reprinted by
-  // hand later — low-stakes, not a stock or money operation.
-  const confirmarImpresion = async () => {
+  const toggleSalioBien = (barcode) => {
+    setSalieronBien((prev) => {
+      const next = new Set(prev)
+      if (next.has(barcode)) next.delete(barcode)
+      else next.add(barcode)
+      return next
+    })
+  }
+
+  // Only the items the user actually confirms came out get logged — anything
+  // left unchecked (or the whole batch, if the print dialog was cancelled)
+  // simply never enters etiquetas_impresas, so it stays in "pendientes" on
+  // the next load with no per-product lookup needed.
+  const confirmarSeleccionadas = async () => {
     setGuardando(true)
-    await marcarEtiquetasImpresas(itemsImprimir)
+    const confirmadas = itemsImprimir.filter((i) => salieronBien.has(i.barcode))
+    await marcarEtiquetasImpresas(confirmadas)
     setGuardando(false)
+    setConfirmando(false)
     setItemsImprimir(null)
+    setSalieronBien(new Set())
     cargar()
   }
 
@@ -98,6 +110,72 @@ const Etiquetas = () => {
       <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.85rem' }}>
         Cargando…
       </p>
+    )
+  }
+
+  if (itemsImprimir && confirmando) {
+    return (
+      <div className="flex flex-col" style={{ gap: '1.5rem', maxWidth: '32rem' }}>
+        <div>
+          <h1
+            className="font-serif text-[var(--color-ink)]"
+            style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', fontWeight: 300, letterSpacing: '-0.02em' }}
+          >
+            ¿Salieron bien?
+          </h1>
+          <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.82rem', marginTop: '0.5rem' }}>
+            Desmarca cualquier etiqueta que no haya salido de la impresora — se quedará en pendientes para reintentar más tarde.
+          </p>
+        </div>
+
+        <div className="bg-[var(--color-paper)]" style={{ border: '1px solid var(--color-surface)', padding: '1.25rem' }}>
+          <div className="flex flex-col" style={{ gap: '0.4rem' }}>
+            {itemsImprimir.map((item) => (
+              <label
+                key={item.barcode}
+                className="flex items-center transition-colors hover:bg-[var(--color-base)]"
+                style={{ gap: '0.65rem', padding: '0.5rem 0.75rem', border: '1px solid var(--color-surface)', cursor: 'pointer' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={salieronBien.has(item.barcode)}
+                  onChange={() => toggleSalioBien(item.barcode)}
+                />
+                <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.82rem' }}>
+                  {item.productoNombre}
+                  {item.colorLabel ? ` · ${item.colorLabel}` : ''}
+                </span>
+                <span
+                  className="font-sans text-[var(--color-muted)]"
+                  style={{ fontSize: '0.72rem', marginLeft: 'auto', letterSpacing: '0.03em' }}
+                >
+                  {item.barcode}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center" style={{ gap: '0.75rem' }}>
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={confirmarSeleccionadas}
+            className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
+            style={{ fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', padding: '0.95rem 1.75rem' }}
+          >
+            {guardando ? 'Guardando…' : `Confirmar ${salieronBien.size} de ${itemsImprimir.length}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmando(false)}
+            className="font-sans text-[var(--color-muted)] hover:text-[var(--color-ink)]"
+            style={{ fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', padding: '0.95rem 1.25rem', border: '1px solid var(--color-surface)' }}
+          >
+            Volver a la vista de impresión
+          </button>
+        </div>
+      </div>
     )
   }
 
@@ -116,10 +194,10 @@ const Etiquetas = () => {
         <div className="etiquetas-no-print flex items-center" style={{ gap: '0.75rem' }}>
           <button
             type="button"
-            disabled={guardando}
-            onClick={async () => {
+            onClick={() => {
               window.print()
-              await confirmarImpresion()
+              setSalieronBien(new Set(itemsImprimir.map((i) => i.barcode)))
+              setConfirmando(true)
             }}
             className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
             style={{ fontSize: '0.72rem', letterSpacing: '0.25em', textTransform: 'uppercase', padding: '0.95rem 1.75rem' }}
