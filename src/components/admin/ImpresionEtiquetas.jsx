@@ -105,7 +105,7 @@ export const ImpresionEtiquetas = ({ items, onClose, onDone }) => {
             ¿Salieron bien?
           </h1>
           <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.82rem', marginTop: '0.5rem' }}>
-            Desmarca cualquier etiqueta que no haya salido de la impresora — se quedará en pendientes para reintentar más tarde.
+            Marca solo las que viste salir bien de la impresora — lo que dejes sin marcar se queda en pendientes para reintentar más tarde.
           </p>
         </div>
 
@@ -184,7 +184,6 @@ export const ImpresionEtiquetas = ({ items, onClose, onDone }) => {
           type="button"
           onClick={() => {
             window.print()
-            setSalieronBien(new Set(itemsResueltos.map((i) => i.barcode)))
             setConfirmando(true)
           }}
           className="bg-[var(--color-ink)] font-sans text-[var(--color-paper)] transition-opacity hover:opacity-85 disabled:opacity-50"
