@@ -43,29 +43,29 @@ export const CustomCursor = () => {
       })
 
       dotXTo.current = gsap.quickTo(dotRef.current, 'x', {
-        duration: 0.18,
+        duration: 0.09,
         ease: 'power3.out',
       })
       dotYTo.current = gsap.quickTo(dotRef.current, 'y', {
-        duration: 0.18,
+        duration: 0.09,
         ease: 'power3.out',
       })
       ringXTo.current = gsap.quickTo(ringRef.current, 'x', {
-        duration: 0.55,
+        duration: 0.28,
         ease: 'power3.out',
       })
       ringYTo.current = gsap.quickTo(ringRef.current, 'y', {
-        duration: 0.55,
+        duration: 0.28,
         ease: 'power3.out',
       })
 
       // Label follows the ring (slightly delayed)
       const labelXTo = gsap.quickTo(labelRef.current, 'x', {
-        duration: 0.55,
+        duration: 0.28,
         ease: 'power3.out',
       })
       const labelYTo = gsap.quickTo(labelRef.current, 'y', {
-        duration: 0.55,
+        duration: 0.28,
         ease: 'power3.out',
       })
 
