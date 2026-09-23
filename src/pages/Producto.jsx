@@ -16,7 +16,7 @@ gsap.registerPlugin(useGSAP)
 
 // Build a pre-filled WhatsApp message URL for a specific product + size
 const buildWhatsAppUrl = (nombre, talla, precio) => {
-  const numero = '34658509332'
+  const numero = '34638970807'
   const msg = `Hola! Me interesa *${nombre}* en talla *${talla}* (€${Number(precio).toFixed(2)}). ¿Está disponible?`
   return `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`
 }

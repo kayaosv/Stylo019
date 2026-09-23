@@ -17,7 +17,7 @@ const SHOP = {
     ['Lun – Sab', '10:00 – 20:30'],
     ['Domingo', 'Cerrado'],
   ],
-  whatsapp: '34658509332',
+  whatsapp: '34638970807',
   whatsappMessage: 'Hola, me gustaria hacer una consulta.',
   instagram: '@modastylo019',
   instagramUrl: 'https://instagram.com/modastylo019',
