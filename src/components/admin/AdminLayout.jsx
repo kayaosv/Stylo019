@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { usePedidosPendientesCount } from '@/hooks/usePedidosPendientesCount'
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', end: true },
@@ -17,11 +18,39 @@ const navItems = [
 const SIDEBAR_COLLAPSED_KEY = 'stylo019-admin-sidebar-collapsed'
 const SIDEBAR_WIDTH = '18rem'
 
+// Red pill next to "Pedidos" showing how many are waiting on `pendiente`
+const PedidosBadge = ({ count }) => {
+  if (!count) return null
+  return (
+    <span
+      className="font-sans"
+      style={{
+        marginLeft: '0.5rem',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '1.15rem',
+        height: '1.15rem',
+        padding: '0 0.35rem',
+        borderRadius: '9999px',
+        background: '#ef4444',
+        color: '#fff',
+        fontSize: '0.68rem',
+        fontWeight: 600,
+        lineHeight: 1,
+      }}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 export const AdminLayout = () => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const pedidosPendientes = usePedidosPendientesCount()
 
   // Sidebar de escritorio colapsable — antes era `hidden md:flex` fijo,
   // sin forma de cerrarlo en pantallas >=768px, robándole espacio
@@ -147,6 +176,7 @@ export const AdminLayout = () => {
               })}
             >
               {item.label}
+              {item.to === '/admin/pedidos' && <PedidosBadge count={pedidosPendientes} />}
             </NavLink>
           ))}
         </nav>
@@ -300,6 +330,7 @@ export const AdminLayout = () => {
               })}
             >
               {item.label}
+              {item.to === '/admin/pedidos' && <PedidosBadge count={pedidosPendientes} />}
             </NavLink>
           ))}
         </nav>
