@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -28,6 +28,7 @@ export const Header = ({ variant = 'default' }) => {
 
   const [hoveredIdx, setHoveredIdx] = useState(null)
   const location = useLocation()
+  const navigate = useNavigate()
 
   const totalItems = useCartStore((s) => s.totalItems())
   const toggleCart = useUIStore((s) => s.toggleCart)
@@ -272,6 +273,7 @@ export const Header = ({ variant = 'default' }) => {
           {/* Search — hidden on very small */}
           <button
             type="button"
+            onClick={() => navigate('/catalogo')}
             aria-label="Search"
             className="hidden sm:flex items-center gap-2 label-xs text-[var(--color-ink)] hover:text-[var(--color-accent)] transition-colors"
           >

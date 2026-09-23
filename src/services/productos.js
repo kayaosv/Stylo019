@@ -31,6 +31,7 @@ export const fetchProductos = async ({
   let query = supabase
     .from('productos')
     .select('*', { count: 'exact' })
+    .eq('activo', true)
 
   // Category
   if (categoria) query = query.eq('categoria', categoria.toLowerCase())
@@ -86,6 +87,7 @@ export const fetchProductoById = async (id) => {
     .from('productos')
     .select('*')
     .eq('id', id)
+    .eq('activo', true)
     .single()
 
   return { data: data ? withPlaceholderImages(data) : null, error }
@@ -109,6 +111,7 @@ export const fetchProductosRelacionados = async (categoria, excludeId, limit = 4
     .from('productos')
     .select('*')
     .eq('categoria', categoria)
+    .eq('activo', true)
     .neq('id', excludeId)
     .order('created_at', { ascending: false })
     .limit(limit)
