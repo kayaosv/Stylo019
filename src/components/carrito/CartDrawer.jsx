@@ -11,7 +11,7 @@ import { fetchSetting } from '@/services/settings'
 
 gsap.registerPlugin(useGSAP)
 
-const WHATSAPP_NUMBER = '34658509332'
+const WHATSAPP_NUMBER = '34638970807'
 
 // Slide-in cart sidebar: backdrop + right panel with items, subtotal,
 // WhatsApp checkout and clear-cart action. Mounted in Layout.jsx.

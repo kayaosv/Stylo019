@@ -270,7 +270,7 @@ export const Footer = () => {
           <ul className="flex flex-col gap-2.5">
             <li>
               <a
-                href="https://wa.me/34658509332"
+                href="https://wa.me/34638970807"
                 target="_blank"
                 rel="noreferrer"
                 className="font-serif font-light text-[var(--color-base)] hover:text-[var(--color-accent)] transition-colors"
