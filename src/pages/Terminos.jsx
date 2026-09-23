@@ -114,7 +114,7 @@ const Terminos = () => (
         <li>
           Escríbenos por{' '}
           <a
-            href="https://wa.me/34658509332"
+            href="https://wa.me/34638970807"
             target="_blank"
             rel="noreferrer"
             className="text-[var(--color-ink)] underline underline-offset-4"

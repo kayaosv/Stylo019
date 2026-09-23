@@ -4,7 +4,7 @@ import gsap from 'gsap'
 
 gsap.registerPlugin(useGSAP)
 
-const WHATSAPP_URL = 'https://wa.me/34658509332'
+const WHATSAPP_URL = 'https://wa.me/34638970807'
 
 export const WhatsAppButton = () => {
   const rootRef = useRef(null)
