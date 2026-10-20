@@ -42,7 +42,7 @@ const ESPECIALES = /[\u0000-\u001F\u007F-\u009F​-‏‪-‮⁠-⁤⁦-⁩﻿<>
 const esObjeto = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
 
-const limpiarTexto = (valor: string): string =>
+export const limpiarTexto = (valor: string): string =>
   valor
     .normalize('NFC')
     .replace(/\s+/g, ' ')
@@ -52,7 +52,7 @@ const limpiarTexto = (valor: string): string =>
 
 const longitud = (texto: string): number => [...texto].length
 
-const normalizarTelefono = (valor: unknown): string | null => {
+export const normalizarTelefono = (valor: unknown): string | null => {
   if (typeof valor !== 'string') return null
   let t = valor.replace(/[\s.\-()]/g, '')
   if (t.startsWith('00')) t = `+${t.slice(2)}`
@@ -61,6 +61,29 @@ const normalizarTelefono = (valor: unknown): string | null => {
   if (/^\+34[6-9]\d{8}$/.test(t)) return t
   if (/^\+(?!34)[1-9]\d{6,14}$/.test(t)) return t
   return null
+}
+
+export const normalizarNombre = (valor: unknown): string | null => {
+  if (typeof valor !== 'string') return null
+  const nombre = limpiarTexto(valor)
+  return longitud(nombre) >= 2 && longitud(nombre) <= 80 && /\p{L}/u.test(nombre) ? nombre : null
+}
+
+// Optional field: valor null means "left empty"; ok false means "invalid".
+export const normalizarEmail = (valor: unknown): { ok: boolean; valor: string | null } => {
+  if (valor === undefined || valor === null || valor === '') return { ok: true, valor: null }
+  if (typeof valor !== 'string') return { ok: false, valor: null }
+  const limpio = limpiarTexto(valor).toLowerCase()
+  if (limpio === '') return { ok: true, valor: null }
+  return longitud(limpio) <= 120 && EMAIL_RE.test(limpio) ? { ok: true, valor: limpio } : { ok: false, valor: null }
+}
+
+export const normalizarNotas = (valor: unknown): { ok: boolean; valor: string | null } => {
+  if (valor === undefined || valor === null || valor === '') return { ok: true, valor: null }
+  if (typeof valor !== 'string') return { ok: false, valor: null }
+  const limpio = limpiarTexto(valor)
+  if (longitud(limpio) > 300) return { ok: false, valor: null }
+  return { ok: true, valor: limpio === '' ? null : limpio }
 }
 
 const validarLineas = (valor: unknown): LineaValidada[] | null => {
@@ -110,32 +133,19 @@ export const validarPedido = (body: unknown): Resultado => {
   const items = validarLineas(body.items)
   if (!items) return fallo('items')
 
-  if (typeof body.nombre !== 'string') return fallo('nombre')
-  const nombre = limpiarTexto(body.nombre)
-  if (longitud(nombre) < 2 || longitud(nombre) > 80 || !/\p{L}/u.test(nombre)) return fallo('nombre')
+  const nombre = normalizarNombre(body.nombre)
+  if (!nombre) return fallo('nombre')
 
   const telefono = normalizarTelefono(body.telefono)
   if (!telefono) return fallo('telefono')
 
-  let email: string | null = null
-  if (body.email !== undefined && body.email !== null && body.email !== '') {
-    if (typeof body.email !== 'string') return fallo('email')
-    const limpio = limpiarTexto(body.email).toLowerCase()
-    if (limpio !== '') {
-      if (longitud(limpio) > 120 || !EMAIL_RE.test(limpio)) return fallo('email')
-      email = limpio
-    }
-  }
+  const email = normalizarEmail(body.email)
+  if (!email.ok) return fallo('email')
 
-  let notas: string | null = null
-  if (body.notas !== undefined && body.notas !== null && body.notas !== '') {
-    if (typeof body.notas !== 'string') return fallo('notas')
-    const limpio = limpiarTexto(body.notas)
-    if (longitud(limpio) > 300) return fallo('notas')
-    notas = limpio === '' ? null : limpio
-  }
+  const notas = normalizarNotas(body.notas)
+  if (!notas.ok) return fallo('notas')
 
-  return { ok: true, valor: { items, nombre, telefono, email, notas, request_id } }
+  return { ok: true, valor: { items, nombre, telefono, email: email.valor, notas: notas.valor, request_id } }
 }
 
 const ORIGENES = new Set([
