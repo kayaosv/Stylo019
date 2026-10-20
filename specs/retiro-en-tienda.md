@@ -10,6 +10,9 @@ Que una clienta pueda reservar su carrito para recogerlo y pagarlo en la tienda,
 - Datos de la clienta: **nombre y teléfono obligatorios; email opcional**.
 - Comprobante: el resumen del pedido guardado, **descargable** y es el mismo que se envía por WhatsApp. **No** hace falta PDF.
 - Se trabaja sobre el proyecto de kayao (GitHub `kayaosv/Stylo019`, Vercel y Supabase de kayao).
+- **Sin Cloudflare Turnstile por ahora** (2026-10-21). La protección se apoya en límites de frecuencia, señuelo, tiempo mínimo y validación en el servidor. Puede añadirse más adelante sin cambiar el diseño.
+- **Dirección de la tienda: Calle Ciudad de Carlet, 10, Local 2 — Parque Alcosa, 41019 Sevilla** (confirmada).
+- **El WhatsApp correcto es `34638970807` (638 970 807) en todo el sitio.** El número 658 509 332 es erróneo y debe corregirse en todas las páginas donde figure.
 
 ## Decisiones de diseño tomadas por Claude (revisar)
 - **Comprobante = imagen PNG** generada en el navegador (canvas, sin dependencias nuevas). `wa.me` no puede adjuntar archivos; por eso en móvil se usa la Web Share API con el archivo (la clienta elige WhatsApp) y en escritorio se descarga el PNG y se abre `wa.me` con el mismo resumen en texto. El texto siempre incluye el número de pedido, así que la tienda tiene los datos aunque no llegue la imagen.
@@ -52,11 +55,18 @@ Que una clienta pueda reservar su carrito para recogerlo y pagarlo en la tienda,
 - [ ] **Sin XSS:** el admin renderiza estos campos como texto de React; el email al admin escapa HTML en todos los campos del usuario; el texto de WhatsApp y el PNG nunca ejecutan nada.
 - [ ] **Prompt injection:** ningún dato del formulario se envía a un modelo de lenguaje en este flujo. Si en el futuro algo lo hiciera, estos campos se tratarán como datos no confiables. Se deja constancia en el código de la edge function.
 - [ ] **Límites de frecuencia** (tabla `pedido_rate_limits`, guardando un hash de la IP con sal, nunca la IP): máx. 5 reservas/hora y 15/día por IP; máx. 5/día por teléfono; máx. **2 reservas abiertas** (sin cobrar y sin cancelar) por teléfono; tope global de **40 reservas abiertas** a la vez. Al superarlos: HTTP 429 y mensaje «Escríbenos por WhatsApp».
-- [ ] **Antibots:** campo señuelo (honeypot) que debe llegar vacío; tiempo mínimo de 2,5 s entre abrir el formulario y enviarlo; comprobación del encabezado `Origin` con lista exacta de dominios (`stylo019.es`, `www.stylo019.es`, `localhost` en desarrollo). **Cloudflare Turnstile** queda como decisión abierta (ver abajo).
+- [ ] **Antibots:** campo señuelo (honeypot) que debe llegar vacío; tiempo mínimo de 2,5 s entre abrir el formulario y enviarlo; comprobación del encabezado `Origin` con lista exacta de dominios (`stylo019.es`, `www.stylo019.es`, `localhost` en desarrollo). Turnstile queda fuera por ahora.
 - [ ] El `Origin` se compara por dominio exacto, no con `endsWith` (ver nota sobre `create-checkout-session`).
 - [ ] La tabla `pedido_rate_limits` tiene RLS activado y ninguna política (solo `service_role`).
 - [ ] Los errores devueltos al navegador no exponen mensajes internos de Postgres ni de Deno; el detalle se registra en logs **sin datos personales**.
 - [ ] La edge function no depende de que la clienta tenga sesión (`verify_jwt = false`, como `create-checkout-session`), por eso las defensas anteriores son obligatorias.
+
+### Datos de contacto de la tienda
+- [x] El WhatsApp del sitio es `34638970807` / «638 970 807» en **todas** las páginas y componentes. No queda ninguna aparición de «658 509 332» en `src/` ni en `CLAUDE.md` (hoy figura en `MobileMenu`, `WhatsAppButton`, `Contacto`, `Privacidad` y `Terminos`).
+- [x] Una prueba automática falla si vuelve a aparecer el número erróneo en el código.
+- [ ] El número y la dirección que usa la reserva (enlace `wa.me` y comprobante) salen de una sola constante compartida (`src/lib/tienda.js`), no de texto repetido.
+- [ ] El comprobante muestra «Calle Ciudad de Carlet, 10, Local 2 — Parque Alcosa, 41019 Sevilla».
+- [x] La cabecera del `CLAUDE.md` del proyecto (dirección «C/ Sierpes» y teléfono) se corrige para coincidir.
 
 ### Admin
 - [ ] En la lista y el detalle de pedidos, las reservas muestran «Web · Recogida en tienda» y una etiqueta «Pendiente de cobro» mientras `pagado_at` sea nulo y el pedido no esté cancelado.
@@ -68,6 +78,7 @@ Que una clienta pueda reservar su carrito para recogerlo y pagarlo en la tienda,
 - [ ] El admin recibe un email (Resend, mismo remitente que el de Stripe) por cada reserva nueva; si el envío falla, la reserva **no** se pierde ni se revierte.
 
 ## Fuera de alcance
+- Corregir el resto de enlaces `wa.me` que ya usan el número correcto (no cambian).
 - Envío **automático** por WhatsApp desde el servidor: requiere WhatsApp Business API / Twilio y una cuenta que la tienda no tiene (ver `badge-pedidos-pendientes.md`). La clienta lo envía con un clic.
 - PDF del comprobante.
 - Email de confirmación a la clienta (el email se guarda por si se quiere usar más adelante).
@@ -76,14 +87,8 @@ Que una clienta pueda reservar su carrito para recogerlo y pagarlo en la tienda,
 - Cambios en `create-checkout-session`, `stripe-webhook` y en `crear_venta_web`/`crear_venta_tpv`.
 - Correcciones de seguridad en flujos existentes (ver «Hallazgos fuera de alcance»).
 
-## Decisiones abiertas (necesitan respuesta antes de implementar)
-1. **Cloudflare Turnstile** (CAPTCHA gratuito y poco intrusivo): es la defensa más fuerte contra pedidos falsos automatizados, pero necesita crear un sitio en Cloudflare y guardar la clave secreta en la edge function. Sin él, la protección se apoya en límites, señuelo y tiempo mínimo. Recomendación: activarlo.
-2. **Dirección de la tienda para el comprobante:** el proyecto tiene **tres** versiones y la clienta irá a recoger allí.
-   - `Privacidad.jsx` y el ticket impreso (`TicketVenta.jsx`): «Calle Ciudad de Carlet, 10, Local 2 — Parque Alcosa, 41019 Sevilla».
-   - Email de `stripe-webhook`: «Av. Ildefonso Marañón Lavín, 9 · Sevilla».
-   - Cabecera de este `CLAUDE.md`: «C/ Sierpes, Centro Histórico».
-   Propuesta: usar la del ticket y la página legal (Calle Ciudad de Carlet, 10, Local 2), que es la más reciente y la que ya sale en documentos oficiales. **Pendiente de confirmar por el usuario.**
-3. **Teléfono de WhatsApp:** el código del carrito usa `34638970807` (confirmado por el usuario, es el que se usa en el comprobante). `Privacidad.jsx` y el botón flotante muestran «658 509 332». Unificar los textos visibles queda fuera de esta feature, pero conviene decidirlo porque la página de privacidad es un documento legal.
+## Decisiones abiertas
+Ninguna sobre el producto. Pendiente solo el entorno de pruebas (ver «Plan de despliegue»).
 
 ## Hallazgos fuera de alcance (no se tocan en esta feature)
 - `create-checkout-session` valida el dominio de retorno con `hostname.endsWith(s)`, lo que acepta dominios como `xstylo019.es`. Debería ser comparación exacta.

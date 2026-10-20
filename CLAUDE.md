@@ -1,7 +1,7 @@
 # ModaMariaJose — E-commerce
 
 ## Proyecto
-Tienda de ropa para mujer en Sevilla (C/ Sierpes, Centro Histórico).
+Tienda de ropa para mujer en Sevilla (Calle Ciudad de Carlet, 10, Local 2, Parque Alcosa).
 La cliente vende principalmente por Instagram. Esta web es su canal digital.
 Prototipo de referencia: https://web-e-commerce-ma-jo-d4x1.vercel.app/
 
@@ -13,8 +13,8 @@ Prototipo de referencia: https://web-e-commerce-ma-jo-d4x1.vercel.app/
 
 ## Negocio
 - Nombre marca: ModaMariaJose
-- Ubicación: Sevilla, España — C/ Sierpes, Centro Histórico
-- WhatsApp negocio: 658 509 332
+- Ubicación: Sevilla, España — Calle Ciudad de Carlet, 10, Local 2, Parque Alcosa (41019)
+- WhatsApp negocio: 638 970 807
 - Modelo de venta: cliente elige producto/talla → consulta por WhatsApp → dueña confirma manualmente
 - Sin pasarela de pago en v1 (preparar arquitectura para futura integración)
 
