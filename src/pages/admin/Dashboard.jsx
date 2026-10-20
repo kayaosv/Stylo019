@@ -6,6 +6,7 @@ import { fetchProductosAdmin } from '@/services/productos'
 import { fetchCategorias } from '@/services/categorias'
 import { fetchEtiquetasPendientes } from '@/services/etiquetas'
 import { useAdminPedidos, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
+import { esVentaCobrada, pendienteDeCobro, resumenPorCobrar } from '@/lib/pedidos'
 
 const CANAL_LABEL = { web: 'Web · Stripe', tienda: 'Tienda física' }
 // tienda usa el azul de marca (--color-accent); web usa un cálido de
@@ -180,10 +181,9 @@ const Dashboard = () => {
   )
   const maxCategoria = Math.max(1, ...porCategoria.map((c) => c.count))
 
-  const ventasSinCancelar = useMemo(
-    () => pedidos.filter((p) => p.estado !== 'cancelado'),
-    [pedidos],
-  )
+  // A reservation paid in store only counts as a sale once it has been collected.
+  const ventasCobradas = useMemo(() => pedidos.filter(esVentaCobrada), [pedidos])
+  const porCobrar = useMemo(() => resumenPorCobrar(pedidos), [pedidos])
 
   const historial = useMemo(() => {
     const days = []
@@ -194,13 +194,13 @@ const Dashboard = () => {
       days.push({ date: d.toISOString().slice(0, 10), label: formatDateShort(d), tienda: 0, web: 0 })
     }
     const byDate = Object.fromEntries(days.map((d) => [d.date, d]))
-    ventasSinCancelar.forEach((v) => {
+    ventasCobradas.forEach((v) => {
       const bucket = byDate[(v.created_at ?? '').slice(0, 10)]
       if (!bucket) return
       bucket[v.canal === 'web' ? 'web' : 'tienda'] += 1
     })
     return days
-  }, [ventasSinCancelar])
+  }, [ventasCobradas])
 
   const puntosConDatos = historial.filter((d) => d.tienda + d.web > 0)
   const totalVentanaHistorial = puntosConDatos.length
@@ -215,11 +215,11 @@ const Dashboard = () => {
 
   const porMetodoPago = useMemo(() => {
     const map = { efectivo: 0, tarjeta: 0 }
-    ventasSinCancelar.forEach((p) => {
+    ventasCobradas.forEach((p) => {
       if (p.metodo_pago in map) map[p.metodo_pago] += 1
     })
     return map
-  }, [ventasSinCancelar])
+  }, [ventasCobradas])
   const totalMetodoPago = porMetodoPago.efectivo + porMetodoPago.tarjeta
 
   const pct = (n, total) => (total === 0 ? '0%' : `${Math.round((n / total) * 100)}%`)
@@ -341,6 +341,7 @@ const Dashboard = () => {
                     </span>
                     <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.68rem' }}>
                       {formatDateShort(p.created_at)} · {CANAL_LABEL[p.canal] ?? p.canal}
+                      {pendienteDeCobro(p) ? ' · Por cobrar' : ''}
                     </span>
                   </div>
                   <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.8rem' }}>
@@ -354,7 +355,7 @@ const Dashboard = () => {
       </div>
 
       {/* Fila 2: totales compactos (Total productos → Valor inventario → Sin stock → Sin etiquetar) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 dash-section" style={{ gap: '0.9rem' }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 dash-section" style={{ gap: '0.9rem' }}>
         <StatCard label="Total productos" value={stats.activos} />
         <StatCard label="Valor inventario" value={eur(stats.valorInventario)} />
         <StatCard label="Sin stock" value={stats.sinStock} warn={stats.sinStock > 0} />
@@ -363,6 +364,12 @@ const Dashboard = () => {
           value={etiquetasPendientes}
           warn={etiquetasPendientes > 0}
           to="/admin/etiquetas"
+        />
+        <StatCard
+          label="Reservas por cobrar"
+          value={`${porCobrar.cantidad} · ${eur(porCobrar.importe)}`}
+          warn={porCobrar.cantidad > 0}
+          to="/admin/pedidos"
         />
       </div>
 

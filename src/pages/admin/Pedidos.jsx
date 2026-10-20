@@ -2,34 +2,30 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAdminPedidos, updatePedidoEstado, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
+import { etiquetaCanal, mensajeCancelacion, pendienteDeCobro } from '@/lib/pedidos'
 
-// cancelar_venta() repone stock pero nunca toca el dinero — un pedido
-// 'tienda' ya se cobró en mano (efectivo/tarjeta física), uno 'web' se
-// cobró por Stripe. El aviso lo deja explícito para que cancelar no se
-// confunda con "ya se devolvió el dinero".
-const mensajeCancelacion = (pedido) =>
-  pedido.canal === 'tienda'
-    ? `Esta venta ya se cobró en el mostrador (${pedido.metodo_pago === 'tarjeta' ? 'tarjeta' : 'efectivo'}). Cancelarla repone el stock de cada línea, pero NO devuelve el dinero automáticamente — si corresponde reembolso, hay que gestionarlo aparte.`
-    : 'Esta venta se pagó por Stripe. Cancelarla repone el stock de cada línea, pero no reembolsa el pago automáticamente — si corresponde, gestiona el reembolso desde el dashboard de Stripe.'
+const Etiqueta = ({ children, color = 'var(--color-muted)', borde = 'var(--color-surface)' }) => (
+  <span
+    className="font-sans"
+    style={{
+      fontSize: '0.68rem', letterSpacing: '0.05em', padding: '0.3rem 0.6rem',
+      border: `1px solid ${borde}`, color, whiteSpace: 'nowrap',
+    }}
+  >
+    {children}
+  </span>
+)
 
-const CANAL_LABEL = { web: 'Web · Stripe', tienda: 'Tienda física' }
-
-const CanalBadge = ({ canal, metodoPago }) => {
-  const label = canal === 'tienda'
-    ? `Mostrador · ${metodoPago === 'tarjeta' ? 'Tarjeta' : 'Efectivo'}`
-    : CANAL_LABEL[canal] ?? canal
-  return (
-    <span
-      className="font-sans"
-      style={{
-        fontSize: '0.68rem', letterSpacing: '0.05em', padding: '0.3rem 0.6rem',
-        border: '1px solid var(--color-surface)', color: 'var(--color-muted)', whiteSpace: 'nowrap',
-      }}
-    >
-      {label}
-    </span>
-  )
-}
+const CanalBadge = ({ pedido }) => (
+  <>
+    <Etiqueta>{etiquetaCanal(pedido)}</Etiqueta>
+    {pendienteDeCobro(pedido) && (
+      <span style={{ marginLeft: '0.4rem' }}>
+        <Etiqueta color="#b45309" borde="#f59e0b">Pendiente de cobro</Etiqueta>
+      </span>
+    )}
+  </>
+)
 
 const OdooBadge = ({ status }) => {
   if (!status || status === 'pending') return null
@@ -112,9 +108,12 @@ const Pedidos = () => {
     if (filtro !== 'all') list = list.filter((p) => p.estado === filtro)
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase()
+      // A short number is a ticket, not a phone: only match phones from 6 digits up.
+      const digitos = q.replace(/\D/g, '')
       list = list.filter((p) =>
         p.cliente_nombre?.toLowerCase().includes(q) ||
         p.cliente_email?.toLowerCase().includes(q) ||
+        (digitos.length >= 6 && p.cliente_telefono?.replace(/\D/g, '').includes(digitos)) ||
         String(p.numero_ticket).includes(q)
       )
     }
@@ -132,7 +131,7 @@ const Pedidos = () => {
           Pedidos
         </h1>
         <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
-          Web (Stripe) y tienda física, en un mismo lugar.
+          Web (Stripe y recogida en tienda) y tienda física, en un mismo lugar.
         </p>
       </div>
 
@@ -172,7 +171,7 @@ const Pedidos = () => {
       <input
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
-        placeholder="Buscar por cliente, email o nº de ticket…"
+        placeholder="Buscar por cliente, email, teléfono o nº de ticket…"
         className="bg-[var(--color-paper)] font-sans text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
         style={{ border: '1px solid var(--color-surface)', padding: '0.85rem 1rem', fontSize: '0.9rem', maxWidth: '24rem' }}
       />
@@ -201,7 +200,7 @@ const Pedidos = () => {
                   <td style={{ padding: '0.85rem 1rem' }}>#{String(p.numero_ticket).padStart(6, '0')}</td>
                   <td style={{ padding: '0.85rem 1rem' }}>{p.cliente_nombre ?? '—'}</td>
                   <td style={{ padding: '0.85rem 1rem' }}>
-                    <CanalBadge canal={p.canal} metodoPago={p.metodo_pago} />
+                    <CanalBadge pedido={p} />
                     {p.canal === 'tienda' && <OdooBadge status={p.odoo_sync_status} />}
                     {p.canal === 'web' && <OdooBadge status={p.odoo_sync_status} />}
                   </td>

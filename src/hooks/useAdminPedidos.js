@@ -13,12 +13,12 @@ export const ESTADO_META = {
 
 const LIST_SELECT = `
   id, numero_ticket, canal, estado, total, metodo_pago, created_at,
-  cliente_nombre, cliente_email, odoo_sync_status,
+  pagado_at, cobrado_con, cliente_nombre, cliente_email, cliente_telefono, odoo_sync_status,
   venta_items(id)
 `
 
 const DETAIL_SELECT = `
-  id, numero_ticket, canal, estado, total, metodo_pago, created_at, notas,
+  id, numero_ticket, canal, estado, total, metodo_pago, created_at, notas, pagado_at, cobrado_con,
   cliente_nombre, cliente_email, cliente_telefono, cliente_direccion,
   odoo_sync_status, odoo_invoice_id, odoo_sync_error,
   venta_items(id, producto_id, producto_nombre, color_label, talla, cantidad, precio_unitario, precio_original)

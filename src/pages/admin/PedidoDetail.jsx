@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fetchPedidoById, updatePedidoEstado, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog'
-
-const mensajeCancelacion = (pedido) =>
-  pedido.canal === 'tienda'
-    ? `Esta venta ya se cobró en el mostrador (${pedido.metodo_pago === 'tarjeta' ? 'tarjeta' : 'efectivo'}). Cancelarla repone el stock de cada línea, pero NO devuelve el dinero automáticamente — si corresponde reembolso, hay que gestionarlo aparte.`
-    : 'Esta venta se pagó por Stripe. Cancelarla repone el stock de cada línea, pero no reembolsa el pago automáticamente — si corresponde, gestiona el reembolso desde el dashboard de Stripe.'
+import { marcarPedidoCobrado } from '@/services/pedidos'
+import {
+  enlaceWhatsApp,
+  esReserva,
+  etiquetaCanal,
+  mensajeCancelacion,
+  pendienteDeCobro,
+  venceEl,
+} from '@/lib/pedidos'
 
 const formatDate = (iso) =>
   new Date(iso).toLocaleDateString('es-ES', {
@@ -21,6 +25,7 @@ const PedidoDetail = () => {
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState(null)
   const [cancelConfirm, setCancelConfirm] = useState(false)
+  const [cobroMetodo, setCobroMetodo] = useState(null)
 
   const load = async () => {
     setLoading(true)
@@ -72,6 +77,20 @@ const PedidoDetail = () => {
     await aplicarCambioEstado('cancelado')
   }
 
+  const confirmarCobro = async () => {
+    const metodo = cobroMetodo
+    setCobroMetodo(null)
+    setUpdating(true)
+    try {
+      await marcarPedidoCobrado(id, metodo)
+      await load()
+    } catch (err) {
+      alert(`No se pudo marcar como cobrado: ${err.message}`)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   if (loading) {
     return <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.85rem' }}>Cargando pedido…</p>
   }
@@ -109,10 +128,39 @@ const PedidoDetail = () => {
           </select>
         </div>
         <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
-          {pedido.canal === 'tienda' ? `Mostrador · ${pedido.metodo_pago === 'tarjeta' ? 'Tarjeta' : 'Efectivo'}` : 'Web · Stripe'}
+          {etiquetaCanal(pedido)}
           {' · '}{formatDate(pedido.created_at)}
         </p>
       </div>
+
+      {pendienteDeCobro(pedido) && (
+        <section style={{ border: '1px solid #f59e0b', background: '#fffbeb', padding: '1.5rem' }}>
+          <p className="label-xs" style={{ letterSpacing: '0.22em', color: '#b45309', marginBottom: '0.5rem' }}>Pendiente de cobro</p>
+          <p className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.85rem', lineHeight: 1.6 }}>
+            Recogida y pago en tienda. Stock reservado hasta el {venceEl(pedido).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}.
+          </p>
+          <div className="flex flex-wrap" style={{ gap: '0.6rem', marginTop: '1rem' }}>
+            {['efectivo', 'tarjeta'].map((metodo) => (
+              <button
+                key={metodo}
+                type="button"
+                disabled={updating}
+                onClick={() => setCobroMetodo(metodo)}
+                className="font-sans text-[var(--color-ink)]"
+                style={{ border: '1px solid var(--color-ink)', padding: '0.6rem 1rem', fontSize: '0.8rem' }}
+              >
+                Cobrado en {metodo}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {esReserva(pedido) && pedido.pagado_at && (
+        <p className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.8rem' }}>
+          Cobrado el {formatDate(pedido.pagado_at)}{pedido.cobrado_con ? ` en ${pedido.cobrado_con}` : ''}.
+        </p>
+      )}
 
       {pedido.canal === 'web' && (
         <section className="bg-[var(--color-paper)]" style={{ border: '1px solid var(--color-surface)', padding: '1.5rem' }}>
@@ -120,7 +168,15 @@ const PedidoDetail = () => {
           <p className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.9rem', lineHeight: 1.7 }}>
             {pedido.cliente_nombre ?? '—'}<br />
             {pedido.cliente_email && <a href={`mailto:${pedido.cliente_email}`} style={{ color: 'var(--color-accent-ink)' }}>{pedido.cliente_email}</a>}
-            {pedido.cliente_telefono && <><br />{pedido.cliente_telefono}</>}
+            {pedido.cliente_telefono && (
+              <>
+                <br />
+                {pedido.cliente_telefono}{' · '}
+                <a href={enlaceWhatsApp(pedido.cliente_telefono)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent-ink)' }}>
+                  Escribir por WhatsApp
+                </a>
+              </>
+            )}
             {pedido.cliente_direccion && <><br />{pedido.cliente_direccion}</>}
           </p>
         </section>
@@ -151,7 +207,7 @@ const PedidoDetail = () => {
         </div>
       </section>
 
-      {pedido.canal === 'web' && (
+      {pedido.canal === 'web' && !pendienteDeCobro(pedido) && (
         <section className="bg-[var(--color-paper)]" style={{ border: '1px solid var(--color-surface)', padding: '1.5rem' }}>
           <p className="label-xs text-[var(--color-muted)]" style={{ letterSpacing: '0.22em', marginBottom: '0.5rem' }}>Factura Odoo</p>
           <p className="font-sans" style={{ fontSize: '0.85rem' }}>
@@ -179,6 +235,18 @@ const PedidoDetail = () => {
         loading={updating}
         onConfirm={confirmarCancelacion}
         onCancel={() => setCancelConfirm(false)}
+      />
+
+      <ConfirmDialog
+        open={cobroMetodo !== null}
+        title="Marcar como cobrado"
+        message={`¿Confirmas que has cobrado ${Number(pedido.total).toFixed(2)} € en ${cobroMetodo ?? ''}? Esta acción no se puede deshacer desde aquí.`}
+        confirmLabel="Sí, cobrado"
+        loadingLabel="Guardando…"
+        cancelLabel="Volver"
+        loading={updating}
+        onConfirm={confirmarCobro}
+        onCancel={() => setCobroMetodo(null)}
       />
     </div>
   )
