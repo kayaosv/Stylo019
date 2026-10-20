@@ -185,3 +185,21 @@ absorbidas (`venta-fisica-odoo`, `banner-agotado-galeria`, `bizum-checkout`,
 `talla-unica-colores-libres`, `limitar-stock-carrito`,
 `errores-checkout-especificos`) — todas quedan subsumidas por `main`/`preview`
 y no aportan nada vivo.
+
+### 5. Reserva «recogida y pago en tienda» — rama `feature/retiro-en-tienda`, sin fusionar
+
+La clienta puede reservar su carrito sin pagar online; queda como pedido web
+`metodo_pago = 'recogida'`, pendiente de cobro (`pagado_at` vacío), con el
+stock reservado 7 días (cron `expirar_ventas_pendientes` existente) y un
+comprobante descargable que se envía por WhatsApp. Spec y criterios en
+`specs/retiro-en-tienda.md` (incluye qué está verificado y qué no).
+
+- Migración `022_pedidos_recogida.sql` (**sin aplicar** en producción) y edge
+  function `crear-pedido-recogida` (**sin desplegar**): única puerta; la
+  función SQL solo la ejecuta `service_role`.
+- Frontend: `ReservaTienda.jsx` + botón en `CartDrawer`, `lib/comprobante.js`,
+  `lib/pedidos.js` (reglas del admin), pantallas de pedidos y dashboard.
+- Pruebas: `pnpm test` (Vitest, 219 pasando). Primera vez que el repo las tiene.
+- WhatsApp único en todo el sitio: `638 970 807` (`src/lib/tienda.js`).
+- **Orden de despliegue:** aplicar la migración antes de fusionar el frontend;
+  las consultas del admin leen `pagado_at`/`cobrado_con`.

@@ -24,20 +24,20 @@ Que una clienta pueda reservar su carrito para recogerlo y pagarlo en la tienda,
 ## Criterios de aceptación
 
 ### Clienta (carrito)
-- [ ] El carrito muestra una tercera opción «Reservar y pagar en tienda», además de «Pagar con tarjeta» y «Finalizar por WhatsApp».
-- [ ] Al pulsarla se abre un formulario con nombre (obligatorio), teléfono (obligatorio), email (opcional) y notas (opcional). Valida en el navegador y muestra errores claros en español.
+- [x] El carrito muestra una tercera opción «Reservar y pagar en tienda», además de «Pagar con tarjeta» y «Finalizar por WhatsApp».
+- [x] Al pulsarla se abre un formulario con nombre (obligatorio), teléfono (obligatorio), email (opcional) y notas (opcional). Valida en el navegador y muestra errores claros en español.
 - [ ] Si falta stock o un producto ya no está disponible, se muestra el motivo real del servidor y **no se crea** pedido.
-- [ ] Al confirmar se muestra el número de pedido, el resumen, hasta qué día es válida la reserva (7 días) y el texto «Recogida y pago en tienda — pendiente de pago».
-- [ ] El carrito se vacía solo cuando el servidor confirma la reserva. Si falla, el carrito se conserva.
+- [x] Al confirmar se muestra el número de pedido, el resumen, hasta qué día es válida la reserva (7 días) y el texto «Recogida y pago en tienda — pendiente de pago».
+- [x] El carrito se vacía solo cuando el servidor confirma la reserva. Si falla, el carrito se conserva.
 - [ ] Doble clic o reintento no crea dos pedidos (clave de idempotencia).
 - [ ] Funciona en cualquier tamaño de pantalla (regla permanente de responsive).
 
 ### Comprobante y WhatsApp
 - [ ] Botón «Descargar comprobante» genera un PNG con: marca, nº de pedido, fecha, nombre y teléfono, líneas (producto, color, talla, cantidad, precio), total, «Método de pago: recogida y pago en tienda — pendiente de pago» y validez de la reserva.
-- [ ] Botón «Enviar por WhatsApp»: en navegadores con soporte de archivos (móvil) comparte el PNG + texto; si no, descarga el PNG y abre `https://wa.me/34638970807?text=…` con el resumen.
-- [ ] El texto de WhatsApp incluye «Pedido #N» y «Método de pago: recogida y pago en tienda».
-- [ ] Todo texto del usuario que entra en la URL de WhatsApp pasa por `encodeURIComponent` y sin caracteres de control.
-- [ ] La confirmación sobrevive a recargar la página (se guarda el último pedido en `sessionStorage`).
+- [x] Botón «Enviar por WhatsApp»: en navegadores con soporte de archivos (móvil) comparte el PNG + texto; si no, descarga el PNG y abre `https://wa.me/34638970807?text=…` con el resumen.
+- [x] El texto de WhatsApp incluye «Reserva #N» y «Método de pago: recogida y pago en tienda».
+- [x] Todo texto del usuario que entra en la URL de WhatsApp pasa por `encodeURIComponent` y sin caracteres de control.
+- [x] La confirmación sobrevive a recargar la página (se guarda el último pedido en `sessionStorage`).
 
 ### Servidor y base de datos
 - [ ] Migración `022_pedidos_recogida.sql` (en el repo, para poder reaplicarla en otro proyecto Supabase): `ventas.pagado_at`, `ventas.cobrado_con`, `ventas.idempotency_key` (único), `'recogida'` permitido en `ventas_metodo_pago_check`, tabla `pedido_rate_limits`.
@@ -49,32 +49,32 @@ Que una clienta pueda reservar su carrito para recogerlo y pagarlo en la tienda,
 - [ ] Si la reserva caduca (7 días) se cancela y repone stock con el cron actual, sin cambios en esa función.
 
 ### Seguridad (pedidos falsos, abuso e inyección)
-- [ ] **Validación estricta en el servidor** (nunca confiar en el navegador): líneas 1–10; cantidad por línea 1–5; máx. 20 unidades por pedido; `id` UUID; `talla` ≤ 10 caracteres; `colorId` ≤ 64; nombre 2–80 caracteres; teléfono normalizado (móvil español de 9 dígitos que empiece por 6–9, o internacional de 7–15 dígitos); email ≤ 120 con formato válido; notas ≤ 300. Campos desconocidos se ignoran; cualquier valor fuera de rango devuelve 400 con mensaje genérico.
-- [ ] Se eliminan caracteres de control, de ancho cero y de anulación bidireccional; se normaliza Unicode (NFC) y se colapsan espacios. El texto se guarda **tal cual como texto plano**, sin interpretarse nunca como HTML, SQL ni instrucciones.
+- [x] **Validación estricta en el servidor** (nunca confiar en el navegador): líneas 1–10; cantidad por línea 1–5; máx. 20 unidades por pedido; `id` UUID; `talla` ≤ 10 caracteres; `colorId` ≤ 64; nombre 2–80 caracteres; teléfono normalizado (móvil español de 9 dígitos que empiece por 6–9, o internacional de 7–15 dígitos); email ≤ 120 con formato válido; notas ≤ 300. Campos desconocidos se ignoran; cualquier valor fuera de rango devuelve 400 con mensaje genérico.
+- [x] Se eliminan caracteres de control, de ancho cero y de anulación bidireccional; se normaliza Unicode (NFC) y se colapsan espacios. El texto se guarda **tal cual como texto plano**, sin interpretarse nunca como HTML, SQL ni instrucciones.
 - [ ] **Sin inyección SQL:** todo entra como parámetros tipados (JSON → `jsonb_to_recordset`/argumentos de función); ninguna consulta se arma concatenando texto del usuario.
-- [ ] **Sin XSS:** el admin renderiza estos campos como texto de React; el email al admin escapa HTML en todos los campos del usuario; el texto de WhatsApp y el PNG nunca ejecutan nada.
-- [ ] **Prompt injection:** ningún dato del formulario se envía a un modelo de lenguaje en este flujo. Si en el futuro algo lo hiciera, estos campos se tratarán como datos no confiables. Se deja constancia en el código de la edge function.
+- [x] **Sin XSS:** el admin renderiza estos campos como texto de React; el email al admin escapa HTML en todos los campos del usuario; el texto de WhatsApp y el PNG nunca ejecutan nada.
+- [x] **Prompt injection:** ningún dato del formulario se envía a un modelo de lenguaje en este flujo. Si en el futuro algo lo hiciera, estos campos se tratarán como datos no confiables. Se deja constancia en el código de la edge function.
 - [ ] **Límites de frecuencia** (tabla `pedido_rate_limits`, guardando un hash de la IP con sal, nunca la IP): máx. 5 reservas/hora y 15/día por IP; máx. 5/día por teléfono; máx. **2 reservas abiertas** (sin cobrar y sin cancelar) por teléfono; tope global de **40 reservas abiertas** a la vez. Al superarlos: HTTP 429 y mensaje «Escríbenos por WhatsApp».
-- [ ] **Antibots:** campo señuelo (honeypot) que debe llegar vacío; tiempo mínimo de 2,5 s entre abrir el formulario y enviarlo; comprobación del encabezado `Origin` con lista exacta de dominios (`stylo019.es`, `www.stylo019.es`, `localhost` en desarrollo). Turnstile queda fuera por ahora.
-- [ ] El `Origin` se compara por dominio exacto, no con `endsWith` (ver nota sobre `create-checkout-session`).
+- [x] **Antibots:** campo señuelo (honeypot) que debe llegar vacío; tiempo mínimo de 2,5 s entre abrir el formulario y enviarlo; comprobación del encabezado `Origin` con lista exacta de dominios (`stylo019.es`, `www.stylo019.es`, `localhost` en desarrollo). Turnstile queda fuera por ahora.
+- [x] El `Origin` se compara por dominio exacto, no con `endsWith` (ver nota sobre `create-checkout-session`).
 - [ ] La tabla `pedido_rate_limits` tiene RLS activado y ninguna política (solo `service_role`).
-- [ ] Los errores devueltos al navegador no exponen mensajes internos de Postgres ni de Deno; el detalle se registra en logs **sin datos personales**.
+- [x] Los errores devueltos al navegador no exponen mensajes internos de Postgres ni de Deno; el detalle se registra en logs **sin datos personales**.
 - [ ] La edge function no depende de que la clienta tenga sesión (`verify_jwt = false`, como `create-checkout-session`), por eso las defensas anteriores son obligatorias.
 
 ### Datos de contacto de la tienda
 - [x] El WhatsApp del sitio es `34638970807` / «638 970 807» en **todas** las páginas y componentes. No queda ninguna aparición de «658 509 332» en `src/` ni en `CLAUDE.md` (hoy figura en `MobileMenu`, `WhatsAppButton`, `Contacto`, `Privacidad` y `Terminos`).
 - [x] Una prueba automática falla si vuelve a aparecer el número erróneo en el código.
-- [ ] El número y la dirección que usa la reserva (enlace `wa.me` y comprobante) salen de una sola constante compartida (`src/lib/tienda.js`), no de texto repetido.
-- [ ] El comprobante muestra «Calle Ciudad de Carlet, 10, Local 2 — Parque Alcosa, 41019 Sevilla».
+- [x] El número y la dirección que usa la reserva (enlace `wa.me` y comprobante) salen de una sola constante compartida (`src/lib/tienda.js`), no de texto repetido.
+- [x] El comprobante muestra «Calle Ciudad de Carlet, 10, Local 2 — Parque Alcosa, 41019 Sevilla».
 - [x] La cabecera del `CLAUDE.md` del proyecto (dirección «C/ Sierpes» y teléfono) se corrige para coincidir.
 
 ### Admin
-- [ ] En la lista y el detalle de pedidos, las reservas muestran «Web · Recogida en tienda» y una etiqueta «Pendiente de cobro» mientras `pagado_at` sea nulo y el pedido no esté cancelado.
-- [ ] El detalle tiene «Marcar como cobrado» (efectivo/tarjeta) que llama a `marcar_pedido_cobrado`.
-- [ ] El teléfono de la clienta se muestra con enlace `https://wa.me/…` para contactarla.
-- [ ] El aviso al cancelar una reserva sin cobrar dice que no hay dinero que devolver y que solo se repone stock.
-- [ ] El dashboard cuenta como **ingresos** solo las ventas con `pagado_at`; las reservas abiertas aparecen aparte como «Por cobrar» (cantidad e importe).
-- [ ] El badge de pendientes del nav sigue contando `estado = 'pendiente'` (incluye reservas), sin cambios.
+- [x] En la lista y el detalle de pedidos, las reservas muestran «Web · Recogida en tienda» y una etiqueta «Pendiente de cobro» mientras `pagado_at` sea nulo y el pedido no esté cancelado.
+- [x] El detalle tiene «Marcar como cobrado» (efectivo/tarjeta) que llama a `marcar_pedido_cobrado`.
+- [x] El teléfono de la clienta se muestra con enlace `https://wa.me/…` para contactarla.
+- [x] El aviso al cancelar una reserva sin cobrar dice que no hay dinero que devolver y que solo se repone stock.
+- [x] El dashboard cuenta como **ingresos** solo las ventas con `pagado_at`; las reservas abiertas aparecen aparte como «Por cobrar» (cantidad e importe).
+- [x] El badge de pendientes del nav sigue contando `estado = 'pendiente'` (incluye reservas), sin cambios.
 - [ ] El admin recibe un email (Resend, mismo remitente que el de Stripe) por cada reserva nueva; si el envío falla, la reserva **no** se pierde ni se revierte.
 
 ## Fuera de alcance
@@ -107,3 +107,23 @@ Ninguna sobre el producto. Pendiente solo el entorno de pruebas (ver «Plan de d
 3. **Las edge functions no tienen entorno de preview:** al desplegar `crear-pedido-recogida` queda activa en producción de inmediato, aunque el código del frontend aún esté en `preview`. Como es una función nueva que nadie llama hasta que el frontend la use, no afecta a la tienda actual; aun así se despliega solo después de probarla en un proyecto de pruebas.
 4. Orden de entrega: (a) spec aprobada, (b) pruebas rojas, (c) migración y función en un proyecto de pruebas, (d) frontend en `preview`, (e) autorización para producción, (f) merge a `main`.
 3. Como el Supabase de kayao se migrará más adelante a otro proyecto, la migración y el código de la función viven en el repo (`supabase/migrations/022_…`, `supabase/functions/crear-pedido-recogida/`) y se reaplican tal cual en el proyecto nuevo.
+
+## Estado de verificación (2026-10-21)
+
+**Hecho y verificado** — 219 pruebas pasando (Vitest + Testing Library) y `pnpm build` correcto:
+- Validación y sanitización del servidor, comprobación de origen, manejador de la edge function (límites, errores sin filtrar detalles, email que no tumba la reserva), email del admin con HTML escapado.
+- Formulario de reserva, comprobante (texto, enlace de WhatsApp, compartir/descargar), integración en el carrito, pantallas del admin y dashboard.
+- WhatsApp unificado en todo el sitio, con prueba que impide que reaparezca el número erróneo.
+
+**Hecho, no verificado** (necesita la base de datos o un navegador real):
+- Migración `022_pedidos_recogida.sql` y las funciones SQL: escritas, **sin aplicar** en Supabase (el permiso de despliegue a producción fue denegado). Falta probar stock, bloqueos, límites, idempotencia y permisos reales.
+- Edge function `crear-pedido-recogida`: `index.ts` (conexión con Supabase y Resend) sin ejecutar ni desplegar; no hay Deno en este entorno.
+- El PNG del comprobante: la generación está probada con un lienzo simulado; falta ver cómo se dibuja en un navegador y probar la hoja de compartir en un móvil.
+- Diseño responsive del formulario y de la confirmación, en distintos tamaños de pantalla.
+- Email real por Resend.
+
+**Pendiente**
+- [ ] Aplicar la migración (con autorización) y probar las funciones SQL con transacciones que se revierten.
+- [ ] Desplegar la edge function y probar el flujo completo desde el preview.
+- [ ] Pruebas Playwright del flujo completo (no hay navegador en este entorno).
+- [ ] Orden obligatorio: migración **antes** de fusionar el frontend, porque las consultas del admin leen `pagado_at` y `cobrado_con`.
