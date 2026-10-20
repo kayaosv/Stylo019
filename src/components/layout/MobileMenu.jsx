@@ -195,7 +195,7 @@ export const MobileMenu = () => {
             Calle Ciudad de Carlet, 10 &mdash; 41019 Sevilla
           </span>
           <span className="label-xs text-[var(--color-muted)]">
-            658 509 332 &middot; @modastylo019
+            638 970 807 &middot; @modastylo019
           </span>
           <span className="label-xs text-[var(--color-accent-ink)] mt-2">
             Est. MMXXIV

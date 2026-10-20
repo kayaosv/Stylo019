@@ -140,7 +140,7 @@ export const WhatsAppButton = () => {
             }}
           >
             <textPath href="#wa-ring-path">
-              Stylo019 — WhatsApp — 658 509 332 —
+              Stylo019 — WhatsApp — 638 970 807 —
             </textPath>
           </text>
         </svg>

@@ -38,7 +38,7 @@ const Privacidad = () => (
         CIF: 28753199W<br />
         Calle Ciudad de Carlet, 10, Local 2 — 41019 Sevilla, España<br />
         Email: modastylo019@gmail.com<br />
-        WhatsApp: 658 509 332
+        WhatsApp: 638 970 807
       </p>
     </Section>
 
