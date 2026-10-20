@@ -8,10 +8,11 @@ import { CarritoVacio } from '@/components/carrito/CarritoVacio'
 import { formatPrice } from '@/lib/precio'
 import { createCheckoutSession } from '@/services/stripe'
 import { fetchSetting } from '@/services/settings'
+import { ReservaTienda } from '@/components/carrito/ReservaTienda'
+import { leerUltimaReserva } from '@/lib/reserva'
+import { WHATSAPP_NUMBER } from '@/lib/tienda'
 
 gsap.registerPlugin(useGSAP)
-
-const WHATSAPP_NUMBER = '34638970807'
 
 // Slide-in cart sidebar: backdrop + right panel with items, subtotal,
 // WhatsApp checkout and clear-cart action. Mounted in Layout.jsx.
@@ -28,6 +29,8 @@ export const CartDrawer = () => {
   const [paying, setPaying] = useState(false)
   const [stripeError, setStripeError] = useState(null)
   const [umbral, setUmbral] = useState(50)
+  const [reservaAbierta, setReservaAbierta] = useState(false)
+  const [ultimaReserva, setUltimaReserva] = useState(null)
 
   useEffect(() => {
     fetchSetting('envio_gratis_umbral').then(({ data }) => {
@@ -93,6 +96,11 @@ export const CartDrawer = () => {
         document.body.style.overflow = prev
       }
     }
+  }, [cartOpen])
+
+  // Leaving the cart also leaves the reservation screen.
+  useEffect(() => {
+    if (!cartOpen) setReservaAbierta(false)
   }, [cartOpen])
 
   // Close on Escape
@@ -230,7 +238,22 @@ export const CartDrawer = () => {
               </div>
             ))
           ) : (
-            <CarritoVacio />
+            <>
+              <CarritoVacio />
+              {leerUltimaReserva() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUltimaReserva(leerUltimaReserva())
+                    setReservaAbierta(true)
+                  }}
+                  className="label-xs block mx-auto pb-8 underline underline-offset-4"
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  Ver el comprobante de tu última reserva
+                </button>
+              )}
+            </>
           )}
         </div>
 
@@ -345,6 +368,19 @@ export const CartDrawer = () => {
               </p>
             )}
 
+            {/* Secondary CTA — reserve now, pay in store */}
+            <button
+              type="button"
+              onClick={() => {
+                setUltimaReserva(null)
+                setReservaAbierta(true)
+              }}
+              className="w-full py-4 text-center font-sans text-sm uppercase transition-colors duration-200"
+              style={{ border: '1px solid var(--color-ink)', color: 'var(--color-ink)', letterSpacing: '0.12em' }}
+            >
+              Reservar y pagar en tienda
+            </button>
+
             {/* Secondary CTA — WhatsApp */}
             <a
               href={whatsappUrl}
@@ -375,6 +411,19 @@ export const CartDrawer = () => {
               ← Seguir comprando
             </button>
           </footer>
+        )}
+
+        {reservaAbierta && (
+          <div className="absolute inset-0 z-10 flex flex-col" style={{ background: 'var(--color-base)' }}>
+            <ReservaTienda
+              pedidoInicial={ultimaReserva}
+              onVolver={() => setReservaAbierta(false)}
+              onCerrar={() => {
+                setReservaAbierta(false)
+                closeCart()
+              }}
+            />
+          </div>
         )}
       </aside>
     </div>

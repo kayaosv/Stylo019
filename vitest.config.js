@@ -13,6 +13,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Low-memory machines time out starting many workers at once.
+    maxWorkers: 2,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.test.{js,jsx}', 'supabase/functions/**/*.test.ts'],
