@@ -5,12 +5,12 @@ import userEvent from '@testing-library/user-event'
 vi.mock('@/services/pedidos', () => ({ crearPedidoRecogida: vi.fn() }))
 vi.mock('@/lib/comprobante', async (importOriginal) => ({
   ...(await importOriginal()),
-  compartirComprobante: vi.fn(),
+  enviarComprobanteWhatsApp: vi.fn(),
   descargarComprobante: vi.fn(),
 }))
 
 import { crearPedidoRecogida } from '@/services/pedidos'
-import { compartirComprobante, descargarComprobante } from '@/lib/comprobante'
+import { enviarComprobanteWhatsApp, descargarComprobante } from '@/lib/comprobante'
 import { useCartStore } from '@/store/useCartStore'
 import { ReservaTienda } from '@/components/carrito/ReservaTienda'
 
@@ -202,19 +202,11 @@ describe('ReservaTienda — confirmación', () => {
     expect(screen.queryByLabelText(/^nombre/i)).not.toBeInTheDocument()
   })
 
-  it('«Enviar por WhatsApp» comparte el comprobante', async () => {
-    compartirComprobante.mockResolvedValue('compartido')
+  it('«Enviar por WhatsApp» abre el chat de la tienda con la reserva', async () => {
     const { user } = abrir({ pedidoInicial: reserva })
     await user.click(screen.getByRole('button', { name: /whatsapp/i }))
-    expect(compartirComprobante).toHaveBeenCalledWith(reserva)
-  })
-
-  it('si no se puede generar el comprobante, avisa sin romper la pantalla', async () => {
-    compartirComprobante.mockRejectedValue(new Error('No se pudo generar el comprobante'))
-    const { user } = abrir({ pedidoInicial: reserva })
-    await user.click(screen.getByRole('button', { name: /whatsapp/i }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(/comprobante/i)
-    expect(screen.getByText(/#67/)).toBeInTheDocument()
+    expect(enviarComprobanteWhatsApp).toHaveBeenCalledWith(reserva)
+    expect(screen.getByRole('status')).toHaveTextContent(/chat/i)
   })
 
   it('«Descargar comprobante» solo descarga', async () => {
@@ -222,7 +214,7 @@ describe('ReservaTienda — confirmación', () => {
     const { user } = abrir({ pedidoInicial: reserva })
     await user.click(screen.getByRole('button', { name: /descargar/i }))
     expect(descargarComprobante).toHaveBeenCalledWith(reserva)
-    expect(compartirComprobante).not.toHaveBeenCalled()
+    expect(enviarComprobanteWhatsApp).not.toHaveBeenCalled()
   })
 
   it('«Seguir comprando» cierra el cajón', async () => {

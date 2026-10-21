@@ -4,7 +4,7 @@ import {
   comprobanteTexto,
   whatsappUrl,
   generarComprobantePng,
-  compartirComprobante,
+  enviarComprobanteWhatsApp,
   descargarComprobante,
 } from '@/lib/comprobante'
 
@@ -113,7 +113,7 @@ describe('generarComprobantePng', () => {
   })
 })
 
-describe('compartir y descargar', () => {
+describe('enviar por WhatsApp y descargar', () => {
   const prepararCanvas = () => {
     const { ctx } = ctxFalso()
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx)
@@ -133,43 +133,16 @@ describe('compartir y descargar', () => {
     quitarShare()
   })
 
-  it('en móvil comparte la imagen y el texto con la hoja de compartir', async () => {
-    prepararCanvas()
-    const share = vi.fn().mockResolvedValue(undefined)
-    Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true })
+  it('enviarComprobanteWhatsApp abre directamente el chat del número 807 con el texto', () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const share = vi.fn()
     Object.defineProperty(navigator, 'share', { value: share, configurable: true })
-    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
 
-    const resultado = await compartirComprobante(pedido())
+    enviarComprobanteWhatsApp(pedido())
 
-    expect(resultado).toBe('compartido')
-    const args = share.mock.calls[0][0]
-    expect(args.files[0].type).toBe('image/png')
-    expect(args.files[0].name).toContain('67')
-    expect(args.text).toBe(comprobanteTexto(pedido()))
-    expect(abrir).not.toHaveBeenCalled()
-  })
-
-  it('si la clienta cancela la hoja de compartir, no descarga ni abre nada', async () => {
-    prepararCanvas()
-    const abort = Object.assign(new Error('cancelado'), { name: 'AbortError' })
-    Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true })
-    Object.defineProperty(navigator, 'share', { value: vi.fn().mockRejectedValue(abort), configurable: true })
-    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
-
-    expect(await compartirComprobante(pedido())).toBe('cancelado')
-    expect(abrir).not.toHaveBeenCalled()
-  })
-
-  it('sin soporte de archivos descarga la imagen y abre wa.me con el mismo texto', async () => {
-    prepararCanvas()
-    quitarShare()
-    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
-    const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-
-    expect(await compartirComprobante(pedido())).toBe('descargado')
-    expect(clic).toHaveBeenCalledTimes(1)
     expect(abrir).toHaveBeenCalledWith(whatsappUrl(pedido()), '_blank', 'noopener,noreferrer')
+    expect(whatsappUrl(pedido())).toMatch(/^https:\/\/wa\.me\/34638970807\?text=/)
+    expect(share).not.toHaveBeenCalled()
   })
 
   it('descargarComprobante solo descarga, sin abrir WhatsApp', async () => {

@@ -3,7 +3,7 @@ import { useCartStore } from '@/store/useCartStore'
 import { getPrecioEfectivo } from '@/lib/precio'
 import { crearPedidoRecogida } from '@/services/pedidos'
 import { validarFormulario, construirPayload, guardarUltimaReserva } from '@/lib/reserva'
-import { comprobanteLineas, compartirComprobante, descargarComprobante } from '@/lib/comprobante'
+import { comprobanteLineas, descargarComprobante, enviarComprobanteWhatsApp } from '@/lib/comprobante'
 
 // The server rejects forms sent in under 2.5 s (anti-bot). A fast autofill can
 // beat that, so wait out the difference instead of failing a real customer.
@@ -128,13 +128,10 @@ const Confirmacion = ({ pedido, onCerrar }) => {
       <div className="flex flex-col gap-3">
         <button
           type="button"
-          disabled={ocupado}
-          onClick={() =>
-            ejecutar(() => compartirComprobante(pedido), {
-              compartido: 'Comprobante compartido.',
-              descargado: 'Comprobante descargado: adjúntalo en el chat de WhatsApp que se ha abierto.',
-            })
-          }
+          onClick={() => {
+            enviarComprobanteWhatsApp(pedido)
+            setAviso({ tipo: 'status', texto: 'Se abrió el chat de Stylo019: pulsa enviar para confirmar tu reserva.' })
+          }}
           className={BOTON}
           style={{ ...BOTON_PRIMARIO, background: 'var(--color-accent-ink)' }}
         >

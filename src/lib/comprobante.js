@@ -202,26 +202,9 @@ export const descargarComprobante = async (pedido) => {
   descargarBlob(await generarComprobantePng(pedido), nombreArchivo(pedido))
 }
 
-// WhatsApp links cannot attach files, so on phones the receipt goes through
-// the Web Share sheet (the customer picks WhatsApp); elsewhere the image is
-// downloaded and the chat opens with the same text.
-// Returns 'compartido' | 'cancelado' | 'descargado'.
-export const compartirComprobante = async (pedido) => {
-  const blob = await generarComprobantePng(pedido)
-  const nombre = nombreArchivo(pedido)
-  const archivo = new File([blob], nombre, { type: 'image/png' })
-
-  if (navigator.canShare?.({ files: [archivo] })) {
-    try {
-      await navigator.share({ files: [archivo], text: comprobanteTexto(pedido) })
-      return 'compartido'
-    } catch (err) {
-      if (err?.name === 'AbortError') return 'cancelado'
-      // Any other failure: fall back to download + wa.me below.
-    }
-  }
-
-  descargarBlob(blob, nombre)
+// Opens the store's chat (wa.me/<number>) with the receipt text already
+// written, so the customer only has to press send. The share sheet is not used:
+// it cannot be aimed at a number and opens WhatsApp's chat list instead.
+export const enviarComprobanteWhatsApp = (pedido) => {
   window.open(whatsappUrl(pedido), '_blank', 'noopener,noreferrer')
-  return 'descargado'
 }
