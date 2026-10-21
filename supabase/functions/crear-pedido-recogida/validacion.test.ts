@@ -78,7 +78,7 @@ describe('validarPedido — teléfono', () => {
 
 describe('validarPedido — nombre, email y notas (entrada hostil)', () => {
   it('elimina caracteres de control, de ancho cero y de anulación bidireccional', () => {
-    const nombre = ok({ ...base(), nombre: 'Ana‮​ Pérez\u0000\u0007' }).nombre
+    const nombre = ok({ ...base(), nombre: 'Ana\u202E\u200B Pérez\u0000\u0007' }).nombre
     expect(nombre).toBe('Ana Pérez')
   })
 
@@ -108,7 +108,7 @@ describe('validarPedido — nombre, email y notas (entrada hostil)', () => {
     expect(ok({ ...base(), nombre: descompuesto }).nombre).toBe('José')
   })
 
-  it.each(['A', 'x'.repeat(81), '12345', '   ', '​​', ''])('rechaza el nombre %j', (nombre) => {
+  it.each(['A', 'x'.repeat(81), '12345', '   ', '\u200B\u200B', ''])('rechaza el nombre %j', (nombre) => {
     expect(campoFallido({ ...base(), nombre })).toBe('nombre')
   })
 

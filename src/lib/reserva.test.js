@@ -42,7 +42,7 @@ describe('validarFormulario', () => {
   })
 
   it('usa las mismas reglas que el servidor (misma fuente)', () => {
-    const { valores } = validarFormulario(valido({ nombre: 'Ana‮​', notas: '<b>hola</b>' }))
+    const { valores } = validarFormulario(valido({ nombre: 'Ana\u202E\u200B', notas: '<b>hola</b>' }))
     expect(valores.nombre).toBe('Ana')
     expect(valores.notas).not.toMatch(/[<>]/)
   })

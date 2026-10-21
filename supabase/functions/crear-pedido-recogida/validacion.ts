@@ -36,8 +36,24 @@ const TALLA_RE = /^[\p{L}\p{N} ./-]{1,10}$/u
 const COLOR_RE = /^[A-Za-z0-9_-]{1,64}$/
 const EMAIL_RE = /^[^\s@<>"',;:()[\]\\]+@[^\s@<>"',;:()[\]\\]+\.[^\s@<>"',;:()[\]\\]{2,}$/
 
-// Control characters, zero-width, bidirectional overrides and angle brackets.
-const ESPECIALES = /[\u0000-\u001F\u007F-\u009F​-‏‪-‮⁠-⁤⁦-⁩﻿<>]/g
+// Characters stripped from free text, as code point ranges so that no invisible
+// character ever has to appear in this source file: control characters, zero-width
+// characters, bidirectional overrides, the BOM and the angle brackets.
+const RANGOS_ESPECIALES: [number, number][] = [
+  [0x0000, 0x001f],
+  [0x007f, 0x009f],
+  [0x200b, 0x200f],
+  [0x202a, 0x202e],
+  [0x2060, 0x2064],
+  [0x2066, 0x2069],
+  [0xfeff, 0xfeff],
+  [0x003c, 0x003c], // '<'
+  [0x003e, 0x003e], // '>'
+]
+const ESPECIALES = new RegExp(
+  `[${RANGOS_ESPECIALES.map(([desde, hasta]) => `${String.fromCharCode(desde)}-${String.fromCharCode(hasta)}`).join('')}]`,
+  'g',
+)
 
 const esObjeto = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
