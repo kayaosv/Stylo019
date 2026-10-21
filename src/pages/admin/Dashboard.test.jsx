@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('@gsap/react', () => ({ useGSAP: vi.fn() }))
@@ -8,12 +8,14 @@ vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/services/productos', () => ({ fetchProductosAdmin: vi.fn().mockResolvedValue({ data: [] }) }))
 vi.mock('@/services/categorias', () => ({ fetchCategorias: vi.fn().mockResolvedValue({ data: [] }) }))
 vi.mock('@/services/etiquetas', () => ({ fetchEtiquetasPendientes: vi.fn().mockResolvedValue({ data: [] }) }))
+vi.mock('@/hooks/usePedidosPendientesCount', () => ({ usePedidosPendientesCount: vi.fn() }))
 vi.mock('@/hooks/useAdminPedidos', async (importOriginal) => ({
   ...(await importOriginal()),
   useAdminPedidos: vi.fn(),
 }))
 
 import { useAdminPedidos } from '@/hooks/useAdminPedidos'
+import { usePedidosPendientesCount } from '@/hooks/usePedidosPendientesCount'
 import Dashboard from '@/pages/admin/Dashboard'
 
 const hoy = new Date().toISOString()
@@ -35,8 +37,9 @@ const pedido = (extra = {}) => ({
 const reserva = (extra = {}) =>
   pedido({ id: 'r', numero_ticket: 67, metodo_pago: 'recogida', pagado_at: null, total: 25.9, cliente_nombre: 'María José', ...extra })
 
-const abrir = (pedidos) => {
+const abrir = (pedidos, pendientes = 0) => {
   useAdminPedidos.mockReturnValue({ pedidos, loading: false })
+  usePedidosPendientesCount.mockReturnValue(pendientes)
   return render(
     <MemoryRouter>
       <Dashboard />
@@ -82,5 +85,28 @@ describe('Dashboard — reservas por cobrar', () => {
   it('una reserva cobrada pasa a contar como venta', async () => {
     abrir([reserva({ pagado_at: hoy, cobrado_con: 'tarjeta' })])
     expect(await screen.findByText(/1 pedido\/s/)).toBeInTheDocument()
+  })
+})
+
+describe('Dashboard — aviso de pedidos nuevos en el botón Pedidos', () => {
+  const botonPedidos = async () => (await screen.findByRole('link', { name: /^Pedidos/ }))
+
+  it('muestra un número rojo en el botón Pedidos cuando hay pedidos pendientes', async () => {
+    abrir([pedido()], 3)
+    const boton = await botonPedidos()
+    expect(boton).toHaveAttribute('href', '/admin/pedidos')
+    expect(within(boton).getByLabelText('3 pedidos pendientes')).toHaveTextContent('3')
+  })
+
+  it('no muestra nada si no hay pedidos pendientes', async () => {
+    abrir([pedido()], 0)
+    const boton = await botonPedidos()
+    expect(within(boton).queryByLabelText(/pendiente/)).not.toBeInTheDocument()
+  })
+
+  it('cuenta también las reservas en tienda, que entran como pendientes', async () => {
+    abrir([reserva()], 1)
+    const boton = await botonPedidos()
+    expect(within(boton).getByLabelText('1 pedido pendiente')).toBeInTheDocument()
   })
 })

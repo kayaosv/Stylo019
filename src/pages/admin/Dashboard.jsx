@@ -7,6 +7,8 @@ import { fetchCategorias } from '@/services/categorias'
 import { fetchEtiquetasPendientes } from '@/services/etiquetas'
 import { useAdminPedidos, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
 import { esVentaCobrada, pendienteDeCobro, resumenPorCobrar } from '@/lib/pedidos'
+import { usePedidosPendientesCount } from '@/hooks/usePedidosPendientesCount'
+import { PedidosBadge } from '@/components/admin/PedidosBadge'
 
 const CANAL_LABEL = { web: 'Web · Stripe', tienda: 'Tienda física' }
 // tienda usa el azul de marca (--color-accent); web usa un cálido de
@@ -30,7 +32,7 @@ const formatDateShort = (iso) =>
 // Pedidos.jsx (borde, texto uppercase tracked, hover rellena de sólido)
 // con esquinas redondeadas + emoji para que se lean como botón, no
 // como texto plano con un borde.
-const HeaderAction = ({ to, icon, label, primary }) => (
+const HeaderAction = ({ to, icon, label, primary, badge }) => (
   <Link
     to={to}
     className="flex items-center font-sans transition-colors"
@@ -49,6 +51,7 @@ const HeaderAction = ({ to, icon, label, primary }) => (
   >
     <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>{icon}</span>
     {label}
+    {badge}
   </Link>
 )
 
@@ -132,6 +135,7 @@ const Dashboard = () => {
   const [etiquetasPendientes, setEtiquetasPendientes] = useState(0)
   const [loadingProductos, setLoadingProductos] = useState(true)
   const { pedidos, loading: loadingPedidos } = useAdminPedidos()
+  const pedidosPendientes = usePedidosPendientesCount()
   const [lowStockExpanded, setLowStockExpanded] = useState(false)
 
   useEffect(() => {
@@ -280,7 +284,7 @@ const Dashboard = () => {
           </h1>
         </div>
         <div className="flex flex-wrap items-center" style={{ gap: '0.6rem' }}>
-          <HeaderAction to="/admin/pedidos" icon="📋" label="Pedidos" />
+          <HeaderAction to="/admin/pedidos" icon="📋" label="Pedidos" badge={<PedidosBadge count={pedidosPendientes} />} />
           <HeaderAction to="/admin/venta-fisica" icon="💳" label="Venta física / TPV" primary />
           <HeaderAction to="/admin/productos/nuevo" icon="🏷️" label="Nuevo producto" />
         </div>
