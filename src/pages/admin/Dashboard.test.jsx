@@ -109,4 +109,18 @@ describe('Dashboard — aviso de pedidos nuevos en el botón Pedidos', () => {
     const boton = await botonPedidos()
     expect(within(boton).getByLabelText('1 pedido pendiente')).toBeInTheDocument()
   })
+
+  it('el número aparece como burbuja flotante sobre el botón, no al lado del texto', async () => {
+    abrir([pedido()], 4)
+    const boton = await botonPedidos()
+    const burbuja = within(boton).getByLabelText('4 pedidos pendientes')
+    expect(getComputedStyle(burbuja).position).toBe('absolute')
+    expect(getComputedStyle(boton).position).toBe('relative')
+  })
+
+  it('el panel pide refrescar los pedidos solo cada 30 segundos', async () => {
+    abrir([pedido()], 0)
+    await botonPedidos()
+    expect(useAdminPedidos).toHaveBeenCalledWith(expect.objectContaining({ autoRefreshMs: 30000 }))
+  })
 })

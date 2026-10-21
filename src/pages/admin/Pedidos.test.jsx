@@ -102,4 +102,20 @@ describe('Pedidos — lista', () => {
     expect(screen.getByText(hostil)).toBeInTheDocument()
     expect(document.querySelector('td img')).toBeNull()
   })
+
+  it('se refresca sola cada 30 segundos', () => {
+    abrir([reserva, stripe])
+    expect(useAdminPedidos).toHaveBeenLastCalledWith({ autoRefreshMs: 30000 })
+  })
+
+  it('pausa el refresco mientras hay un diálogo de cancelación abierto', async () => {
+    const user = abrir([reserva, stripe])
+    await user.selectOptions(within(fila('Laura')).getByRole('combobox'), 'cancelado')
+
+    expect(screen.getByText(/repone el stock/i)).toBeInTheDocument()
+    expect(useAdminPedidos).toHaveBeenLastCalledWith({ autoRefreshMs: null })
+
+    await user.click(screen.getByRole('button', { name: /^volver$/i }))
+    expect(useAdminPedidos).toHaveBeenLastCalledWith({ autoRefreshMs: 30000 })
+  })
 })

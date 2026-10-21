@@ -60,12 +60,18 @@ const formatDate = (iso) =>
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 
+const AUTO_REFRESH_MS = 30000
+
 const Pedidos = () => {
-  const { pedidos, loading, setPedidos } = useAdminPedidos()
   const [filtro, setFiltro] = useState('all')
   const [busqueda, setBusqueda] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
   const [cancelTarget, setCancelTarget] = useState(null)
+  // New orders appear by themselves, but never while a status change is in
+  // flight or the cancel dialog is open, so a reload cannot overwrite it.
+  const { pedidos, loading, setPedidos } = useAdminPedidos({
+    autoRefreshMs: updatingId || cancelTarget ? null : AUTO_REFRESH_MS,
+  })
 
   const aplicarCambioEstado = async (pedido, next) => {
     setUpdatingId(pedido.id)

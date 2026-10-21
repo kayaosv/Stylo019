@@ -26,4 +26,24 @@ describe('PedidosBadge', () => {
     render(<PedidosBadge count={3} />)
     expect(screen.getByLabelText('3 pedidos pendientes')).toBeInTheDocument()
   })
+
+  it('por defecto va en línea, al lado del texto', () => {
+    render(<PedidosBadge count={2} />)
+    expect(getComputedStyle(screen.getByText('2')).position).not.toBe('absolute')
+  })
+
+  it('en modo flotante se coloca como burbuja en la esquina superior derecha del botón', () => {
+    render(<PedidosBadge count={2} flotante />)
+    const burbuja = screen.getByText('2')
+    const estilo = getComputedStyle(burbuja)
+    expect(estilo.position).toBe('absolute')
+    expect(parseFloat(estilo.top)).toBeLessThan(0)
+    expect(parseFloat(estilo.right)).toBeLessThan(0)
+    expect(estilo.pointerEvents).toBe('none')
+  })
+
+  it('la burbuja flotante lleva un aro del color del fondo (CSS válido) para separarse del botón', () => {
+    render(<PedidosBadge count={2} flotante />)
+    expect(screen.getByText('2').style.boxShadow).toBe('0 0 0 2px var(--color-base)')
+  })
 })

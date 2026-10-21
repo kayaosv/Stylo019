@@ -23,6 +23,9 @@ const SCROLL_MAX_HEIGHT = '15rem'
 const stockDe = (producto) =>
   Object.values(producto.tallas ?? {}).reduce((acc, v) => acc + (Number(v) || 0), 0)
 
+// The panel reloads its orders by itself while the tab is open.
+const AUTO_REFRESH_MS = 30000
+
 const eur = (n) => `${Number(n ?? 0).toFixed(2)} €`
 
 const formatDateShort = (iso) =>
@@ -47,6 +50,7 @@ const HeaderAction = ({ to, icon, label, primary, badge }) => (
       border: primary ? '1px solid var(--color-accent)' : '1px solid var(--color-surface)',
       backgroundColor: primary ? 'var(--color-accent)' : 'transparent',
       color: primary ? '#fff' : 'var(--color-muted)',
+      position: 'relative',
     }}
   >
     <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>{icon}</span>
@@ -134,7 +138,7 @@ const Dashboard = () => {
   const [categorias, setCategorias] = useState([])
   const [etiquetasPendientes, setEtiquetasPendientes] = useState(0)
   const [loadingProductos, setLoadingProductos] = useState(true)
-  const { pedidos, loading: loadingPedidos } = useAdminPedidos()
+  const { pedidos, loading: loadingPedidos } = useAdminPedidos({ autoRefreshMs: AUTO_REFRESH_MS })
   const pedidosPendientes = usePedidosPendientesCount()
   const [lowStockExpanded, setLowStockExpanded] = useState(false)
 
@@ -284,7 +288,7 @@ const Dashboard = () => {
           </h1>
         </div>
         <div className="flex flex-wrap items-center" style={{ gap: '0.6rem' }}>
-          <HeaderAction to="/admin/pedidos" icon="📋" label="Pedidos" badge={<PedidosBadge count={pedidosPendientes} />} />
+          <HeaderAction to="/admin/pedidos" icon="📋" label="Pedidos" badge={<PedidosBadge count={pedidosPendientes} flotante />} />
           <HeaderAction to="/admin/venta-fisica" icon="💳" label="Venta física / TPV" primary />
           <HeaderAction to="/admin/productos/nuevo" icon="🏷️" label="Nuevo producto" />
         </div>
