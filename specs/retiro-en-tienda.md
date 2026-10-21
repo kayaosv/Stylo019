@@ -110,20 +110,22 @@ Ninguna sobre el producto. Pendiente solo el entorno de pruebas (ver «Plan de d
 
 ## Estado de verificación (2026-10-21)
 
-**Hecho y verificado** — 219 pruebas pasando (Vitest + Testing Library) y `pnpm build` correcto:
+**Hecho y verificado** — 253 pruebas pasando (Vitest + Testing Library) y `pnpm build` correcto:
 - Validación y sanitización del servidor, comprobación de origen, manejador de la edge function (límites, errores sin filtrar detalles, email que no tumba la reserva), email del admin con HTML escapado.
-- Formulario de reserva, comprobante (texto, enlace de WhatsApp, compartir/descargar), integración en el carrito, pantallas del admin y dashboard.
+- Formulario de reserva, comprobante (texto, enlace de WhatsApp, descarga), integración en el carrito, pantallas del admin y dashboard.
 - WhatsApp unificado en todo el sitio, con prueba que impide que reaparezca el número erróneo.
+- Migración `022_pedidos_recogida.sql` aplicada en el Supabase de kayao y comprobada con transacciones revertidas (stock, bloqueos, límites, idempotencia, permisos).
+- Edge function `crear-pedido-recogida` desplegada y probada con peticiones que no crean datos.
+- Probado por el dueño en el preview: reserva, comprobante y panel («se ve perfecto»).
+- Burbuja roja de pendientes y refresco automático cada 30 s en el panel.
+- Decisión: el botón de WhatsApp abre `wa.me/34638970807` con el texto del comprobante; la hoja de compartir no se puede dirigir a un número. La imagen queda en «Descargar comprobante».
 
-**Hecho, no verificado** (necesita la base de datos o un navegador real):
-- Migración `022_pedidos_recogida.sql` y las funciones SQL: escritas, **sin aplicar** en Supabase (el permiso de despliegue a producción fue denegado). Falta probar stock, bloqueos, límites, idempotencia y permisos reales.
-- Edge function `crear-pedido-recogida`: `index.ts` (conexión con Supabase y Resend) sin ejecutar ni desplegar; no hay Deno en este entorno.
-- El PNG del comprobante: la generación está probada con un lienzo simulado; falta ver cómo se dibuja en un navegador y probar la hoja de compartir en un móvil.
-- Diseño responsive del formulario y de la confirmación, en distintos tamaños de pantalla.
-- Email real por Resend.
+**Hecho, no verificado**:
+- `index.ts` de la edge function (conexión con Supabase y Resend): sin pruebas bajo Deno.
+- Email real por Resend (secretos sin confirmar).
+- Diseño responsive en distintos tamaños de pantalla y apertura de `wa.me` en móviles distintos.
 
 **Pendiente**
-- [ ] Aplicar la migración (con autorización) y probar las funciones SQL con transacciones que se revierten.
-- [ ] Desplegar la edge function y probar el flujo completo desde el preview.
 - [ ] Pruebas Playwright del flujo completo (no hay navegador en este entorno).
-- [ ] Orden obligatorio: migración **antes** de fusionar el frontend, porque las consultas del admin leen `pagado_at` y `cobrado_con`.
+- [ ] Decidir si se suben los límites anti-abuso (propuesta: 10/h y 30/día por IP, 3 abiertas por teléfono, 100 en total).
+- [ ] Reiniciar la secuencia de tickets a 66 (una prueba consumió del 67 al 69).
