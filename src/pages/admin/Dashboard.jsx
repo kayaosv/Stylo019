@@ -6,6 +6,9 @@ import { fetchProductosAdmin } from '@/services/productos'
 import { fetchCategorias } from '@/services/categorias'
 import { fetchEtiquetasPendientes } from '@/services/etiquetas'
 import { useAdminPedidos, ESTADO_META, VENTA_ESTADOS } from '@/hooks/useAdminPedidos'
+import { esVentaCobrada, pendienteDeCobro, resumenPorCobrar } from '@/lib/pedidos'
+import { usePedidosPendientesCount } from '@/hooks/usePedidosPendientesCount'
+import { PedidosBadge } from '@/components/admin/PedidosBadge'
 
 const CANAL_LABEL = { web: 'Web · Stripe', tienda: 'Tienda física' }
 // tienda usa el azul de marca (--color-accent); web usa un cálido de
@@ -20,6 +23,9 @@ const SCROLL_MAX_HEIGHT = '15rem'
 const stockDe = (producto) =>
   Object.values(producto.tallas ?? {}).reduce((acc, v) => acc + (Number(v) || 0), 0)
 
+// The panel reloads its orders by itself while the tab is open.
+const AUTO_REFRESH_MS = 30000
+
 const eur = (n) => `${Number(n ?? 0).toFixed(2)} €`
 
 const formatDateShort = (iso) =>
@@ -29,7 +35,7 @@ const formatDateShort = (iso) =>
 // Pedidos.jsx (borde, texto uppercase tracked, hover rellena de sólido)
 // con esquinas redondeadas + emoji para que se lean como botón, no
 // como texto plano con un borde.
-const HeaderAction = ({ to, icon, label, primary }) => (
+const HeaderAction = ({ to, icon, label, primary, badge }) => (
   <Link
     to={to}
     className="flex items-center font-sans transition-colors"
@@ -44,10 +50,12 @@ const HeaderAction = ({ to, icon, label, primary }) => (
       border: primary ? '1px solid var(--color-accent)' : '1px solid var(--color-surface)',
       backgroundColor: primary ? 'var(--color-accent)' : 'transparent',
       color: primary ? '#fff' : 'var(--color-muted)',
+      position: 'relative',
     }}
   >
     <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>{icon}</span>
     {label}
+    {badge}
   </Link>
 )
 
@@ -130,7 +138,8 @@ const Dashboard = () => {
   const [categorias, setCategorias] = useState([])
   const [etiquetasPendientes, setEtiquetasPendientes] = useState(0)
   const [loadingProductos, setLoadingProductos] = useState(true)
-  const { pedidos, loading: loadingPedidos } = useAdminPedidos()
+  const { pedidos, loading: loadingPedidos } = useAdminPedidos({ autoRefreshMs: AUTO_REFRESH_MS })
+  const pedidosPendientes = usePedidosPendientesCount()
   const [lowStockExpanded, setLowStockExpanded] = useState(false)
 
   useEffect(() => {
@@ -180,10 +189,9 @@ const Dashboard = () => {
   )
   const maxCategoria = Math.max(1, ...porCategoria.map((c) => c.count))
 
-  const ventasSinCancelar = useMemo(
-    () => pedidos.filter((p) => p.estado !== 'cancelado'),
-    [pedidos],
-  )
+  // A reservation paid in store only counts as a sale once it has been collected.
+  const ventasCobradas = useMemo(() => pedidos.filter(esVentaCobrada), [pedidos])
+  const porCobrar = useMemo(() => resumenPorCobrar(pedidos), [pedidos])
 
   const historial = useMemo(() => {
     const days = []
@@ -194,13 +202,13 @@ const Dashboard = () => {
       days.push({ date: d.toISOString().slice(0, 10), label: formatDateShort(d), tienda: 0, web: 0 })
     }
     const byDate = Object.fromEntries(days.map((d) => [d.date, d]))
-    ventasSinCancelar.forEach((v) => {
+    ventasCobradas.forEach((v) => {
       const bucket = byDate[(v.created_at ?? '').slice(0, 10)]
       if (!bucket) return
       bucket[v.canal === 'web' ? 'web' : 'tienda'] += 1
     })
     return days
-  }, [ventasSinCancelar])
+  }, [ventasCobradas])
 
   const puntosConDatos = historial.filter((d) => d.tienda + d.web > 0)
   const totalVentanaHistorial = puntosConDatos.length
@@ -215,11 +223,11 @@ const Dashboard = () => {
 
   const porMetodoPago = useMemo(() => {
     const map = { efectivo: 0, tarjeta: 0 }
-    ventasSinCancelar.forEach((p) => {
+    ventasCobradas.forEach((p) => {
       if (p.metodo_pago in map) map[p.metodo_pago] += 1
     })
     return map
-  }, [ventasSinCancelar])
+  }, [ventasCobradas])
   const totalMetodoPago = porMetodoPago.efectivo + porMetodoPago.tarjeta
 
   const pct = (n, total) => (total === 0 ? '0%' : `${Math.round((n / total) * 100)}%`)
@@ -280,7 +288,7 @@ const Dashboard = () => {
           </h1>
         </div>
         <div className="flex flex-wrap items-center" style={{ gap: '0.6rem' }}>
-          <HeaderAction to="/admin/pedidos" icon="📋" label="Pedidos" />
+          <HeaderAction to="/admin/pedidos" icon="📋" label="Pedidos" badge={<PedidosBadge count={pedidosPendientes} flotante />} />
           <HeaderAction to="/admin/venta-fisica" icon="💳" label="Venta física / TPV" primary />
           <HeaderAction to="/admin/productos/nuevo" icon="🏷️" label="Nuevo producto" />
         </div>
@@ -341,6 +349,7 @@ const Dashboard = () => {
                     </span>
                     <span className="font-sans text-[var(--color-muted)]" style={{ fontSize: '0.68rem' }}>
                       {formatDateShort(p.created_at)} · {CANAL_LABEL[p.canal] ?? p.canal}
+                      {pendienteDeCobro(p) ? ' · Por cobrar' : ''}
                     </span>
                   </div>
                   <span className="font-sans text-[var(--color-ink)]" style={{ fontSize: '0.8rem' }}>
@@ -354,7 +363,7 @@ const Dashboard = () => {
       </div>
 
       {/* Fila 2: totales compactos (Total productos → Valor inventario → Sin stock → Sin etiquetar) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 dash-section" style={{ gap: '0.9rem' }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 dash-section" style={{ gap: '0.9rem' }}>
         <StatCard label="Total productos" value={stats.activos} />
         <StatCard label="Valor inventario" value={eur(stats.valorInventario)} />
         <StatCard label="Sin stock" value={stats.sinStock} warn={stats.sinStock > 0} />
@@ -363,6 +372,12 @@ const Dashboard = () => {
           value={etiquetasPendientes}
           warn={etiquetasPendientes > 0}
           to="/admin/etiquetas"
+        />
+        <StatCard
+          label="Reservas por cobrar"
+          value={`${porCobrar.cantidad} · ${eur(porCobrar.importe)}`}
+          warn={porCobrar.cantidad > 0}
+          to="/admin/pedidos"
         />
       </div>
 

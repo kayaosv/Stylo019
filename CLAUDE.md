@@ -1,7 +1,7 @@
 # ModaMariaJose — E-commerce
 
 ## Proyecto
-Tienda de ropa para mujer en Sevilla (C/ Sierpes, Centro Histórico).
+Tienda de ropa para mujer en Sevilla (Calle Ciudad de Carlet, 10, Local 2, Parque Alcosa).
 La cliente vende principalmente por Instagram. Esta web es su canal digital.
 Prototipo de referencia: https://web-e-commerce-ma-jo-d4x1.vercel.app/
 
@@ -13,8 +13,8 @@ Prototipo de referencia: https://web-e-commerce-ma-jo-d4x1.vercel.app/
 
 ## Negocio
 - Nombre marca: ModaMariaJose
-- Ubicación: Sevilla, España — C/ Sierpes, Centro Histórico
-- WhatsApp negocio: 658 509 332
+- Ubicación: Sevilla, España — Calle Ciudad de Carlet, 10, Local 2, Parque Alcosa (41019)
+- WhatsApp negocio: 638 970 807
 - Modelo de venta: cliente elige producto/talla → consulta por WhatsApp → dueña confirma manualmente
 - Sin pasarela de pago en v1 (preparar arquitectura para futura integración)
 
@@ -185,3 +185,24 @@ absorbidas (`venta-fisica-odoo`, `banner-agotado-galeria`, `bizum-checkout`,
 `talla-unica-colores-libres`, `limitar-stock-carrito`,
 `errores-checkout-especificos`) — todas quedan subsumidas por `main`/`preview`
 y no aportan nada vivo.
+
+### 5. Reserva «recogida y pago en tienda» — fusionada en `main`
+
+La clienta puede reservar su carrito sin pagar online; queda como pedido web
+`metodo_pago = 'recogida'`, pendiente de cobro (`pagado_at` vacío), con el
+stock reservado 7 días (cron `expirar_ventas_pendientes` existente) y un
+comprobante (texto que abre el chat de WhatsApp directo; PNG descargable). Spec y criterios en
+`specs/retiro-en-tienda.md` (incluye qué está verificado y qué no).
+
+- Migración `022_pedidos_recogida.sql` (aplicada en el Supabase de kayao) y edge
+  function `crear-pedido-recogida` (desplegada): única puerta; la función SQL
+  solo la ejecuta `service_role`. Límites anti-abuso en la migración: 5 reservas/h
+  y 15/día por IP, 5/día y 2 abiertas por teléfono, 40 abiertas en total.
+- Frontend: `ReservaTienda.jsx` + botón en `CartDrawer`, `lib/comprobante.js`,
+  `lib/pedidos.js` (reglas del admin), pantallas de pedidos y dashboard.
+- Pruebas: `pnpm test` (Vitest, 253 pasando). Primera vez que el repo las tiene.
+- WhatsApp único en todo el sitio: `638 970 807` (`src/lib/tienda.js`).
+- Panel admin: burbuja roja de pedidos pendientes en «Pedidos» y refresco
+  automático cada 30 s (`useAutoRefresh`; sin consultas con la pestaña oculta).
+- Al migrar a otro Supabase hay que llevar la migración 022, la edge function y
+  los secretos (Resend).

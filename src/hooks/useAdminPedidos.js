@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 
 export const VENTA_ESTADOS = ['pendiente', 'preparando', 'listo', 'entregado', 'cancelado']
 
@@ -13,42 +14,48 @@ export const ESTADO_META = {
 
 const LIST_SELECT = `
   id, numero_ticket, canal, estado, total, metodo_pago, created_at,
-  cliente_nombre, cliente_email, odoo_sync_status,
+  pagado_at, cobrado_con, cliente_nombre, cliente_email, cliente_telefono, odoo_sync_status,
   venta_items(id)
 `
 
 const DETAIL_SELECT = `
-  id, numero_ticket, canal, estado, total, metodo_pago, created_at, notas,
+  id, numero_ticket, canal, estado, total, metodo_pago, created_at, notas, pagado_at, cobrado_con,
   cliente_nombre, cliente_email, cliente_telefono, cliente_direccion,
   odoo_sync_status, odoo_invoice_id, odoo_sync_error,
   venta_items(id, producto_id, producto_nombre, color_label, talla, cantidad, precio_unitario, precio_original)
 `
 
-export const useAdminPedidos = () => {
+// autoRefreshMs: reload quietly every so often (null = off). A silent reload
+// never shows the loading state and keeps the current list if it fails.
+export const useAdminPedidos = ({ autoRefreshMs = null } = {}) => {
   const [pedidos, setPedidos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true)
+  const fetchAll = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     const { data, error: err } = await supabase
       .from('ventas')
       .select(LIST_SELECT)
       .order('created_at', { ascending: false })
 
     if (err) {
-      setError(err)
-      setPedidos([])
+      if (!silent) {
+        setError(err)
+        setPedidos([])
+      }
     } else {
       setPedidos(data ?? [])
       setError(null)
     }
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [])
 
   useEffect(() => {
     fetchAll()
   }, [fetchAll])
+
+  useAutoRefresh(() => fetchAll({ silent: true }), autoRefreshMs)
 
   return { pedidos, loading, error, refetch: fetchAll, setPedidos }
 }

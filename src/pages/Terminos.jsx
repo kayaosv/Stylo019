@@ -60,7 +60,7 @@ const Terminos = () => (
         <a href="mailto:modastylo019@gmail.com" className="text-[var(--color-ink)] underline underline-offset-4">
           modastylo019@gmail.com
         </a><br />
-        WhatsApp: 658 509 332
+        WhatsApp: 638 970 807
       </p>
     </Section>
 

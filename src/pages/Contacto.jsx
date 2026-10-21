@@ -453,7 +453,7 @@ export const Contacto = () => {
                 className="font-sans text-[var(--color-muted)]"
                 style={{ fontSize: '0.8rem', letterSpacing: '0.05em' }}
               >
-                658 509 332
+                638 970 807
               </span>
               <span
                 ref={whatsappLineRef}
