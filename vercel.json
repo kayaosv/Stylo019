@@ -12,7 +12,7 @@
     }
   ],
   "images": {
-    "domains": ["htviiigjxmtixjbniskt.supabase.co"],
+    "domains": ["pqsvvhxtttuacrvvlbiq.supabase.co"],
     "sizes": [200, 400, 600, 800, 1200, 1600],
     "formats": ["image/webp", "image/avif"],
     "minimumCacheTTL": 31536000
