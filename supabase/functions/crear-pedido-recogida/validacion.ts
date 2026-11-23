@@ -167,13 +167,14 @@ export const validarPedido = (body: unknown): Resultado => {
 const ORIGENES = new Set([
   'https://stylo019.es',
   'https://www.stylo019.es',
+  'https://stylo019.vercel.app',
   'http://localhost:5173',
   'http://localhost:4173',
 ])
 
 // Vercel deployments of this project (preview and production URLs). The team
 // slug makes the host impossible to register from another Vercel account.
-const PREVIEW_RE = /^https:\/\/stylo(-[a-z0-9]+)*-kayaosv-gmailcoms-projects\.vercel\.app$/
+const PREVIEW_RE = /^https:\/\/stylo(019)?(-[a-z0-9]+)*-(kayaosv|diegopedraza43)-gmailcoms-projects\.vercel\.app$/
 
 export const origenPermitido = (origen: string | null | undefined): boolean =>
   typeof origen === 'string' && (ORIGENES.has(origen) || PREVIEW_RE.test(origen))

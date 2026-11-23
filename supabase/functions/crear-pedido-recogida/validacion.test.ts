@@ -220,6 +220,8 @@ describe('origenPermitido', () => {
     'http://localhost:4173',
     'https://stylo-git-feature-retiro-en-tienda-kayaosv-gmailcoms-projects.vercel.app',
     'https://stylo-2y3qe94ha-kayaosv-gmailcoms-projects.vercel.app',
+    'https://stylo019.vercel.app',
+    'https://stylo019-mmln3vcj8-diegopedraza43-gmailcoms-projects.vercel.app',
   ])('permite %s', (origen) => {
     expect(origenPermitido(origen)).toBe(true)
   })
@@ -232,6 +234,8 @@ describe('origenPermitido', () => {
     'https://sub.stylo019.es',
     'https://stylo-x-otro-projects.vercel.app',
     'https://attacker-kayaosv-gmailcoms-projects.vercel.app',
+    'https://attacker-diegopedraza43-gmailcoms-projects.vercel.app',
+    'https://stylo019-x-diegopedraza43-gmailcoms-projects.vercel.app.evil.com',
     'https://stylo-x-kayaosv-gmailcoms-projects.vercel.app.evil.com',
     'null',
     '',
