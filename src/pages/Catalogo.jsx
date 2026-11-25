@@ -10,6 +10,7 @@ import { Ordenamiento } from '@/components/catalogo/Ordenamiento'
 import { Newsletter } from '@/components/home/Newsletter'
 
 const POR_PAGINA = 12
+const ORDEN_DEFECTO = 'categorias'
 
 // Parse URL search params into filter object (no pagina — managed by the hook)
 const parseFiltros = (params) => ({
@@ -18,7 +19,7 @@ const parseFiltros = (params) => ({
   tallaDisponible: params.get('talla') || null,
   precioMin: params.get('pMin') ? Number(params.get('pMin')) : null,
   precioMax: params.get('pMax') ? Number(params.get('pMax')) : null,
-  orden: params.get('orden') || 'novedad',
+  orden: params.get('orden') || ORDEN_DEFECTO,
 })
 
 // Serialize filter object back to URL params (omit null/default values)
@@ -29,7 +30,7 @@ const serializeFiltros = (filtros) => {
   if (filtros.tallaDisponible) p.talla = filtros.tallaDisponible
   if (filtros.precioMin != null) p.pMin = filtros.precioMin
   if (filtros.precioMax != null) p.pMax = filtros.precioMax
-  if (filtros.orden && filtros.orden !== 'novedad') p.orden = filtros.orden
+  if (filtros.orden && filtros.orden !== ORDEN_DEFECTO) p.orden = filtros.orden
   return p
 }
 

@@ -92,7 +92,9 @@ export const FiltrosDrawer = ({
           width: 'min(86vw, 22rem)',
           background: 'var(--color-base)',
           paddingTop: '5rem',
-          paddingBottom: '3rem',
+          paddingBottom: 'calc(3rem + env(safe-area-inset-bottom))',
+          height: '100dvh',
+          overscrollBehavior: 'contain',
           paddingLeft: '1.5rem',
           paddingRight: '1.5rem',
         }}
@@ -108,6 +110,7 @@ export const FiltrosDrawer = ({
         </button>
 
         <Filtros
+          enDrawer
           filtros={filtros}
           onChange={onChange}
           onLimpiar={onLimpiar}

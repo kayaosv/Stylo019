@@ -8,7 +8,7 @@ gsap.registerPlugin(useGSAP)
 const TALLAS = ['XS', 'S', 'M', 'L', 'XL']
 
 // Editorial sticky sidebar — no card, no shadow, integrated into the cream background.
-export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0 }) => {
+export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0, enDrawer = false }) => {
   const containerRef = useRef(null)
   const tituloRef = useRef(null)
   const lineRef = useRef(null)
@@ -105,9 +105,9 @@ export const Filtros = ({ filtros, onChange, onLimpiar, totalResultados = 0 }) =
   return (
     <aside
       ref={containerRef}
-      className="sticky top-32 flex flex-col gap-12 pr-4 overflow-y-auto"
+      className={`flex flex-col gap-12 pr-4 ${enDrawer ? '' : 'sticky top-32 overflow-y-auto'}`}
       aria-label="Filtros de catálogo"
-      style={{ maxHeight: 'calc(100vh - 10rem)' }}
+      style={enDrawer ? undefined : { maxHeight: 'calc(100vh - 10rem)' }}
     >
       {/* Title with overflow mask */}
       <div className="flex flex-col gap-3">

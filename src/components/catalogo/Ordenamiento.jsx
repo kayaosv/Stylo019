@@ -1,4 +1,5 @@
 const OPCIONES = [
+  { value: 'categorias',  label: 'Categorías' },
   { value: 'novedad',     label: 'Novedades' },
   { value: 'precio_asc',  label: 'Precio ↑' },
   { value: 'precio_desc', label: 'Precio ↓' },

@@ -13,7 +13,9 @@ const POR_PAGINA_DEFAULT = 12
  * @param {number|null}  params.precioMin       - Minimum price
  * @param {number|null}  params.precioMax       - Maximum price
  * @param {string|null}  params.busqueda        - Search query (name/description)
- * @param {string}       params.orden           - Sort order
+ * @param {string}       params.orden           - 'categorias' (default: orden de categorías del admin),
+ *                                                'novedad' (últimos añadidos de cada categoría),
+ *                                                'precio_asc' | 'precio_desc' | 'mas_vendidos'
  * @param {number}       params.pagina          - Page number (1-based)
  * @param {number}       params.porPagina       - Items per page
  * @returns {Promise<{ data: Array, count: number, error: Object|null }>}
@@ -24,14 +26,14 @@ export const fetchProductos = async ({
   precioMin = null,
   precioMax = null,
   busqueda = null,
-  orden = 'novedad',
+  orden = 'categorias',
   pagina = 1,
   porPagina = POR_PAGINA_DEFAULT,
 } = {}) => {
+  // Vista del catálogo: solo productos activos de categorías activas (migración 023)
   let query = supabase
-    .from('productos')
+    .from('productos_catalogo')
     .select('*', { count: 'exact' })
-    .eq('activo', true)
 
   // Category
   if (categoria) query = query.eq('categoria', categoria.toLowerCase())
@@ -61,8 +63,16 @@ export const fetchProductos = async ({
       query = query.eq('mas_vendido', true).order('created_at', { ascending: false })
       break
     case 'novedad':
+      query = query
+        .order('posicion_en_categoria', { ascending: true })
+        .order('categoria_orden', { ascending: true })
+        .order('id', { ascending: true })
+      break
     default:
-      query = query.order('created_at', { ascending: false })
+      query = query
+        .order('categoria_orden', { ascending: true })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
   }
 
   // Pagination always applies (no client-side filter fallback needed)
