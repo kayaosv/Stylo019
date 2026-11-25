@@ -17,7 +17,9 @@ Tienda Stylo019 (React + Vite + **Supabase propio `pqsvvhxtttuacrvvlbiq`** + Ver
 - Catálogo ordenado por las categorías del admin (migración 023, vista `productos_catalogo`), Novedades por categoría y filtro de precio visible en móvil, en producción desde `a2348e0` (specs/orden-catalogo-por-categorias.md, 270 tests)
 
 ## Pendiente / próximos pasos
-- [ ] Logo del ticket (spec `specs/logo-ticket-y-comprobante.md`): hecho en la rama feature/logo-ticket; falta imprimir en la térmica de 80 mm y ver el comprobante en el móvil
+- [ ] Logo del ticket (spec `specs/logo-ticket-y-comprobante.md`): en producción; el dueño lo prueba en la tienda (térmica de 80 mm) el 2026-11-26
+- [ ] Apunte del dueño (2026-11-25): reducir un poco el logo del ticket, que se ve algo grande (un solo valor: `54mm` en `TicketVenta.jsx`; el PNG térmico es de 432 puntos, si se reduce hay que regenerarlo al ancho nuevo a 8 puntos/mm)
+- [ ] Idea futura del dueño: que el ticket digital de retiro en tienda (comprobante PNG/PDF) muestre la foto de cada producto
 - [ ] Pago con Stripe desde www.stylo019.es sin probar; login/gráfico del admin en producción sin confirmar
 - [ ] Cierre: quitar webhook antiguo de Stripe, rotar service_role de la base de kayao y pausarla tras unos días estable, borrar `.secrets` y exportaciones con datos personales, `supabase logout`
 - [ ] Keep-alive y backup semanal (plan gratuito pausa tras una semana sin actividad); DNS en GoDaddy sin localizar la cuenta; Vercel Hobby es de uso no comercial

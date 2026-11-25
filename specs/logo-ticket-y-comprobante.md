@@ -23,6 +23,10 @@ El ticket impreso del TPV (impresora térmica de 80 mm) y el comprobante de la r
 - [x] Suite completa (274 tests) y build pasando.
 - [ ] Comprobación manual: impresión real en la térmica de 80 mm y comprobante abierto en el móvil.
 
+## Notas del dueño para después
+- Reducir un poco el logo del ticket térmico (se ve algo grande).
+- Mostrar la foto del producto en el comprobante digital de retiro en tienda (hoy es un PNG; el dueño habla de PDF).
+
 ## Fuera de alcance
 - Cambiar textos, datos fiscales o la distribución del ticket.
 - Ticket de reserva imprimible desde el admin.
