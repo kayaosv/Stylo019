@@ -66,6 +66,9 @@ export const comprobanteTexto = (pedido) =>
 export const whatsappUrl = (pedido) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(comprobanteTexto(pedido))}`
 
+const LOGO = '/logo-stylo.webp'
+const LOGO_ANCHO = 360
+const LOGO_ESPERA_MS = 3000
 const ANCHO = 800
 const MARGEN = 48
 const ESCALA = 2
@@ -103,6 +106,20 @@ const partirTexto = (ctx, texto, maxAncho) => {
   return lineas
 }
 
+// The receipt must never depend on the logo: if it fails or is slow, draw without it.
+const cargarLogo = () =>
+  new Promise((resolve) => {
+    const img = new Image()
+    const fin = (valor) => {
+      clearTimeout(espera)
+      resolve(valor)
+    }
+    const espera = setTimeout(() => fin(null), LOGO_ESPERA_MS)
+    img.onload = () => fin(img)
+    img.onerror = () => fin(null)
+    img.src = LOGO
+  })
+
 const ESTILOS = {
   titulo: { fuente: `700 36px ${FUENTE}`, color: COLOR_TEXTO, alto: 46 },
   sub: { fuente: `400 20px ${FUENTE}`, color: COLOR_SUAVE, alto: 30 },
@@ -113,8 +130,9 @@ const ESTILOS = {
   aviso: { fuente: `700 18px ${FUENTE}`, color: COLOR_TEXTO, alto: 28 },
 }
 
-export const generarComprobantePng = (pedido) =>
-  new Promise((resolve, reject) => {
+export const generarComprobantePng = async (pedido) => {
+  const logo = await cargarLogo()
+  return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     if (!ctx) {
@@ -122,9 +140,11 @@ export const generarComprobantePng = (pedido) =>
       return
     }
 
+    const logoAlto = logo ? Math.round((LOGO_ANCHO * logo.naturalHeight) / logo.naturalWidth) : 0
+
     // First pass: lay the rows out so the canvas height fits the content.
     const filas = []
-    let y = MARGEN
+    let y = MARGEN + (logo ? logoAlto + 16 : 0)
     const anchoUtil = ANCHO - MARGEN * 2
 
     for (const linea of comprobanteLineas(pedido)) {
@@ -157,6 +177,7 @@ export const generarComprobantePng = (pedido) =>
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, ANCHO, alto)
     ctx.textBaseline = 'alphabetic'
+    if (logo) ctx.drawImage(logo, (ANCHO - LOGO_ANCHO) / 2, MARGEN, LOGO_ANCHO, logoAlto)
 
     for (const fila of filas) {
       if (fila.tipo === 'sep') {
@@ -186,6 +207,7 @@ export const generarComprobantePng = (pedido) =>
       'image/png',
     )
   })
+}
 
 const descargarBlob = (blob, nombre) => {
   const url = URL.createObjectURL(blob)

@@ -14,9 +14,10 @@ Tienda Stylo019 (React + Vite + **Supabase propio `pqsvvhxtttuacrvvlbiq`** + Ver
 - Migración a Supabase propio, 2026-11-25: 8 tablas idénticas (163 productos, 26 categorías, 76 ventas) con `verif.py`; 510 imágenes WebP; 4 edge functions y secretos de Stripe/Resend; `main` de kayaosv/Stylo019 en 3330dad (commits de kayaosv); bundle en vivo apunta al host nuevo y 3 imágenes pasan por el optimizador (200)
 - Probado en producción por el dueño: reserva desde www.stylo019.es llegó a la base nueva (ticket 84, cancelado después; la base antigua no recibió nada) y el email de aviso llega al reservar. En la preview: pago real con Stripe
 
+- Catálogo ordenado por las categorías del admin (migración 023, vista `productos_catalogo`), Novedades por categoría y filtro de precio visible en móvil, en producción desde `a2348e0` (specs/orden-catalogo-por-categorias.md, 270 tests)
+
 ## Pendiente / próximos pasos
-- [ ] Orden del catálogo según el orden de categorías del admin (spec `specs/orden-catalogo-por-categorias.md`, requiere migración autorizada)
-- [ ] Logo del ticket del TPV optimizado para térmica (negro, ~576 px)
+- [ ] Logo del ticket (spec `specs/logo-ticket-y-comprobante.md`): hecho en la rama feature/logo-ticket; falta imprimir en la térmica de 80 mm y ver el comprobante en el móvil
 - [ ] Pago con Stripe desde www.stylo019.es sin probar; login/gráfico del admin en producción sin confirmar
 - [ ] Cierre: quitar webhook antiguo de Stripe, rotar service_role de la base de kayao y pausarla tras unos días estable, borrar `.secrets` y exportaciones con datos personales, `supabase logout`
 - [ ] Keep-alive y backup semanal (plan gratuito pausa tras una semana sin actividad); DNS en GoDaddy sin localizar la cuenta; Vercel Hobby es de uso no comercial

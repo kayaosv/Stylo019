@@ -71,6 +71,14 @@ const Confirmacion = ({ pedido, onCerrar }) => {
   return (
     <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-6">
       <section aria-label="Resumen de la reserva" className="flex flex-col gap-3">
+        <img
+          src="/logo-stylo.webp"
+          alt="Stylo019"
+          width="680"
+          height="591"
+          className="mx-auto"
+          style={{ width: '11rem', height: 'auto' }}
+        />
         {comprobanteLineas(pedido).map((linea, i) => {
           if (linea.tipo === 'sep') {
             return <hr key={i} style={{ borderColor: 'var(--color-surface)' }} />

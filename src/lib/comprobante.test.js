@@ -82,14 +82,70 @@ const ctxFalso = () => {
       stroke: () => {},
       scale: () => {},
       setLineDash: () => {},
+      drawImage: vi.fn(),
     },
   }
 }
 
+// jsdom no carga imágenes: simulamos que el logo carga o falla al instante.
+const simularImagen = (carga) => {
+  vi.stubGlobal(
+    'Image',
+    class {
+      naturalWidth = 680
+      naturalHeight = 591
+      set src(v) {
+        this.ruta = v
+        queueMicrotask(() => (carga ? this.onload?.() : this.onerror?.()))
+      }
+    },
+  )
+}
+
 describe('generarComprobantePng', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('dibuja el logo centrado arriba y baja el contenido para no taparlo', async () => {
+    simularImagen(true)
+    const { ctx, textos } = ctxFalso()
+    const ys = []
+    ctx.fillText = (t, x, y) => (textos.push(t), ys.push(y))
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb, tipo) =>
+      cb(new Blob(['png'], { type: tipo })),
+    )
+
+    await generarComprobantePng(pedido())
+
+    expect(ctx.drawImage).toHaveBeenCalledTimes(1)
+    const [img, x, y, w, h] = ctx.drawImage.mock.calls[0]
+    expect(img.ruta).toBe('/logo-stylo.webp')
+    expect(w).toBe(360)
+    expect(x).toBe((800 - 360) / 2)
+    expect(y).toBeLessThan(100)
+    expect(Math.min(...ys)).toBeGreaterThan(y + h)
+  })
+
+  it('si el logo no carga, genera el comprobante igualmente sin logo', async () => {
+    simularImagen(false)
+    const { ctx, textos } = ctxFalso()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb, tipo) =>
+      cb(new Blob(['png'], { type: tipo })),
+    )
+
+    const blob = await generarComprobantePng(pedido())
+
+    expect(blob.type).toBe('image/png')
+    expect(ctx.drawImage).not.toHaveBeenCalled()
+    expect(textos.join('\n')).toContain('Reserva #67')
+  })
 
   it('dibuja el comprobante en un canvas y devuelve un PNG', async () => {
+    simularImagen(false)
     const { ctx, textos } = ctxFalso()
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx)
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb, tipo) =>
@@ -106,6 +162,7 @@ describe('generarComprobantePng', () => {
   })
 
   it('falla con un error claro si el navegador no puede generar la imagen', async () => {
+    simularImagen(false)
     const { ctx } = ctxFalso()
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx)
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb) => cb(null))
@@ -115,6 +172,7 @@ describe('generarComprobantePng', () => {
 
 describe('enviar por WhatsApp y descargar', () => {
   const prepararCanvas = () => {
+    simularImagen(false)
     const { ctx } = ctxFalso()
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx)
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb, tipo) =>
@@ -130,6 +188,7 @@ describe('enviar por WhatsApp y descargar', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     quitarShare()
   })
 

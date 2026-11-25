@@ -19,6 +19,7 @@ export const TicketVenta = ({ venta, onNuevaVenta }) => (
         body * { visibility: hidden; }
         #ticket-venta, #ticket-venta * { visibility: visible; }
         #ticket-venta { position: absolute; top: 0; left: 0; width: 80mm; }
+        #ticket-venta, #ticket-venta * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .ticket-no-print { display: none !important; }
       }
     `}</style>
@@ -47,10 +48,11 @@ export const TicketVenta = ({ venta, onNuevaVenta }) => (
       className="bg-[var(--color-paper)] font-sans text-[var(--color-ink)]"
       style={{ width: '320px', padding: '1.5rem', border: '1px solid var(--color-surface)', fontSize: '0.8rem', lineHeight: 1.5 }}
     >
+      {/* 1 bit y 432 px = 54 mm a 8 puntos/mm: la térmica lo imprime sin reescalar */}
       <img
-        src="/logo-ticket.png"
+        src="/logo-ticket-termica.png"
         alt="Stylo019"
-        style={{ display: 'block', width: '140px', margin: '0 auto 0.5rem' }}
+        style={{ display: 'block', width: '54mm', margin: '0 auto 0.5rem' }}
       />
       <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>ModaMariaJose</p>
       <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>DNI/CIF: 28753199W</p>

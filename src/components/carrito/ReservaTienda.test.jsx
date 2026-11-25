@@ -114,6 +114,7 @@ describe('ReservaTienda — envío', () => {
     await user.click(screen.getByRole('button', { name: /confirmar reserva/i }))
 
     await screen.findByText(/#67/)
+    expect(screen.getByAltText('Stylo019')).toHaveAttribute('src', '/logo-stylo.webp')
     const payload = crearPedidoRecogida.mock.calls[0][0]
     expect(payload.items).toEqual([{ id: itemCarrito.id, colorId: 'negro', talla: 'M', cantidad: 1 }])
     expect(payload.telefono).toBe('638 970 807')
